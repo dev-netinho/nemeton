@@ -1,0 +1,10 @@
+.idea/
+.vscode/
+.cache/
+target/
+data/
+backups/
+.env
+*.iml
+*.log
+conversa-base.txt

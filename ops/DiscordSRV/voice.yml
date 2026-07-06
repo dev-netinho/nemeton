@@ -1,0 +1,11 @@
+Voice enabled: true
+Tick speed: 5
+Voice category: REPLACE_WITH_PROXIMITY_CATEGORY_ID
+Lobby channel: REPLACE_WITH_PROXIMITY_LOBBY_ID
+Mute users who bypass speak permissions in the lobby: true
+Network:
+  Vertical Strength: 24
+  Horizontal Strength: 48
+  Falloff: 8
+  Allow voice activation detection: true
+

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>dev.nemeton</groupId>
+  <artifactId>nemeton-core</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <name>NemetonCore</name>
+  <description>Community survival, clans, claims and reversible raids for Paper.</description>
+
+  <properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <paper.version>1.21.11-R0.1-SNAPSHOT</paper.version>
+    <worldguard.version>7.0.17</worldguard.version>
+    <junit.version>5.12.2</junit.version>
+  </properties>
+
+  <repositories>
+    <repository><id>papermc</id><url>https://repo.papermc.io/repository/maven-public/</url></repository>
+    <repository><id>enginehub</id><url>https://maven.enginehub.org/repo/</url></repository>
+  </repositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.papermc.paper</groupId><artifactId>paper-api</artifactId><version>${paper.version}</version><scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.sk89q.worldguard</groupId><artifactId>worldguard-bukkit</artifactId><version>${worldguard.version}</version><scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.zaxxer</groupId><artifactId>HikariCP</artifactId><version>6.3.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.mariadb.jdbc</groupId><artifactId>mariadb-java-client</artifactId><version>3.5.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId><artifactId>flyway-core</artifactId><version>11.8.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId><artifactId>flyway-mysql</artifactId><version>11.8.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>2.19.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>${junit.version}</version><scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><version>3.27.3</version><scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId><artifactId>junit-jupiter</artifactId><version>1.21.1</version><scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId><artifactId>mariadb</artifactId><version>1.21.1</version><scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource><directory>src/main/resources</directory><filtering>false</filtering></resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.14.0</version>
+        <configuration><release>21</release><parameters>true</parameters></configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.5.3</version>
+        <configuration><useModulePath>false</useModulePath></configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId><artifactId>maven-shade-plugin</artifactId><version>3.6.0</version>
+        <executions><execution><phase>package</phase><goals><goal>shade</goal></goals><configuration>
+          <createDependencyReducedPom>false</createDependencyReducedPom>
+          <relocations>
+            <relocation><pattern>com.zaxxer.hikari</pattern><shadedPattern>dev.nemeton.libs.hikari</shadedPattern></relocation>
+            <relocation><pattern>com.fasterxml.jackson</pattern><shadedPattern>dev.nemeton.libs.jackson</shadedPattern></relocation>
+          </relocations>
+          <transformers>
+            <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+          </transformers>
+        </configuration></execution></executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

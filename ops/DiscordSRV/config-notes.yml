@@ -1,0 +1,8 @@
+# Aplique estes valores ao config.yml gerado pelo DiscordSRV.
+# O arquivo completo não é versionado porque muda entre releases.
+Channels:
+  global: REPLACE_WITH_GLOBAL_CHAT_CHANNEL_ID
+DiscordConsoleChannelId: ""
+# Nunca habilite console executável pelo Discord.
+Experiment_WebhookChatMessageDelivery: true
+

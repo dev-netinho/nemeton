@@ -1,0 +1,26 @@
+name: NemetonCore
+version: '0.1.0-SNAPSHOT'
+main: dev.nemeton.NemetonPlugin
+api-version: '1.21.11'
+authors: [Nemeton]
+description: Clans, sanctuaries, claims and reversible raids for a community SMP.
+depend: [WorldGuard]
+softdepend: [CoreProtect, DiscordSRV, floodgate, Shopkeepers]
+commands:
+  clan:
+    description: Gerencia clãs, claims, alianças e o cofre.
+    usage: /clan ajuda
+  santuario:
+    description: Gerencia seu santuário pessoal.
+    usage: /santuario ajuda
+  raid:
+    description: Declara e acompanha invasões.
+    usage: /raid ajuda
+  nemeton:
+    description: Retorna ao Nemeton.
+    usage: /nemeton
+permissions:
+  nemeton.player:
+    default: true
+  nemeton.admin:
+    default: op

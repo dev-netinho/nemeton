@@ -1,0 +1,11 @@
+Enabled: true
+Listener priority: LOWEST
+Whitelisted players bypass check: false
+Check banned players: true
+Only check banned players: false
+Must be in Discord server: true
+Require subscriber role to join: true
+Subscriber roles:
+  - REPLACE_WITH_APPROVED_ROLE_ID
+Require all of the listed roles: true
+

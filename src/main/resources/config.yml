@@ -1,0 +1,50 @@
+database:
+  host: ${DB_HOST:database}
+  port: 3306
+  name: ${DB_NAME:nemeton}
+  username: ${DB_USER:nemeton}
+  password: ${DB_PASSWORD:change-me}
+  pool-size: 6
+
+nemeton:
+  world: world
+  x: 0.5
+  y: 80.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+  radius: 128
+  teleport-warmup-seconds: 10
+  teleport-cooldown-minutes: 30
+
+claims:
+  sanctuary-limit: 4
+  clan-base: 6
+  clan-per-member: 4
+  clan-maximum: 50
+  war-bonus-percent: 25
+
+war:
+  activation-hours: 72
+  minimum-active-days: 7
+  truce-hours: 72
+  declaration-minimum-hours: 24
+  declaration-maximum-hours: 72
+  defender-choice-hours: 12
+  duration-minutes: 60
+  capture-seconds: 180
+  death-lock-seconds: 60
+  minimum-team-size: 2
+  maximum-team-size: 6
+  minimum-stake: 16
+  maximum-stake: 64
+
+discord:
+  enabled: false
+  guild-id: ''
+  bot-token: ''
+  clans-category-id: ''
+  alerts-channel-id: ''
+  approved-role-id: ''
+  intrusion-cooldown-minutes: 10
+
