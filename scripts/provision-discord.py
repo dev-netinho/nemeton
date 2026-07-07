@@ -286,11 +286,11 @@ def main() -> None:
                                    "Regras curtas, proteção de santuários e risco dos clãs.", 1)
     alerts = find_or_create_channel(token, guild_id, "📢・avisos-e-eventos", 0, ("avisos",), general["id"], public_read_only,
                                     "Dragon, Wither, expedições, manutenções e alertas de território.", 2)
-    global_chat = find_or_create_channel(token, guild_id, "💬・chat-global", 0, ("chat-global",), general["id"], approved_only,
+    global_chat = find_or_create_channel(token, guild_id, "💬・chat-global", 0, ("chat-global",) if administrator else (), general["id"], approved_only,
                                          "Conversa integrada em tempo real com o Minecraft.", 3)
-    recruitment = find_or_create_channel(token, guild_id, "🛡️・recrutamento-de-clãs", 0, ("recrutamento",), general["id"], approved_only,
+    recruitment = find_or_create_channel(token, guild_id, "🛡️・recrutamento-de-clãs", 0, ("recrutamento",) if administrator else (), general["id"], approved_only,
                                           "Apresente seu clã, procure companheiros e aceite o risco da guerra.", 4)
-    commands = find_or_create_channel(token, guild_id, "🤖・central-de-comandos", 0, ("comandos",), general["id"], approved_only,
+    commands = find_or_create_channel(token, guild_id, "🤖・central-de-comandos", 0, ("comandos",) if administrator else (), general["id"], approved_only,
                                       "Guias dos comandos Minecraft e atalhos slash do Discord.", 5)
     council = find_or_create_channel(token, guild_id, "👑・conselho-dos-líderes", 0, (), clans["id"], council_only,
                                      "Diplomacia, alianças, agendas e acordos entre líderes e vice-líderes.", 0)
