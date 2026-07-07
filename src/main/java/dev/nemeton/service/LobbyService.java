@@ -31,6 +31,7 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.server.ServerLoadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
@@ -69,7 +70,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         this.plugin = plugin;
         this.settings = settings;
         this.entityKey = new NamespacedKey(plugin, "lobby_entity");
-        Bukkit.getScheduler().runTaskLater(plugin, this::spawnLobbyEntities, 60L);
+        Bukkit.getScheduler().runTaskLater(plugin, this::spawnLobbyEntities, 200L);
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             World world = world();
             if (world != null) removeLobbyMobs(world);
@@ -91,6 +92,11 @@ public final class LobbyService implements Listener, CommandExecutor {
     public void onLivingEntitySpawn(EntitySpawnEvent event) {
         if (event.getEntity() instanceof LivingEntity && !(event.getEntity() instanceof Player)
                 && isInside(event.getLocation())) event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onServerLoaded(ServerLoadEvent event) {
+        Bukkit.getScheduler().runTaskLater(plugin, this::spawnLobbyEntities, 1L);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
