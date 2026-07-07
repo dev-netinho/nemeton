@@ -8,14 +8,14 @@ database:
 
 nemeton:
   world: world
-  x: 22032.5
-  y: 67.0
-  z: -12375.5
+  x: 16064.5
+  y: 78.0
+  z: -32046.5
   yaw: 180.0
   pitch: 0.0
-  center-x: 22032.5
-  center-z: -12400.5
-  radius: 64
+  center-x: 16064.5
+  center-z: -32064.5
+  radius: 42
   teleport-warmup-seconds: 3
   teleport-cooldown-minutes: 5
 

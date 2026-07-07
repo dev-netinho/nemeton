@@ -10,7 +10,7 @@ SMP comunitário Java + Bedrock: um mundo persistente, um centro seguro no próp
 - Integração Discord tolerante a falhas: cria cargo/canais, sincroniza membros vinculados pelo DiscordSRV e envia alertas.
 - Chat privado de clã nos dois sentidos e comandos slash `/clan status`, `/clan recrutar`, `/raid agenda`, `/raid escolher` e `/online`, usando a sessão JDA já aberta pelo DiscordSRV.
 - Paper/Geyser/Floodgate, MariaDB, plugins gratuitos, backups restic/rclone e CI organizados em arquivos reproduzíveis.
-- Experiência alpha: Nemeton físico como árvore ancestral em uma planície natural, beacon máximo no núcleo, região segura com WorldGuard, boas-vindas, livro em `/guia`, kit inicial único em `/kit` e retorno por `/nemeton` ou `/spawn`.
+- Experiência alpha: Nemeton físico como árvore ancestral em uma planície natural, beacon máximo no núcleo, região segura compacta com WorldGuard, boas-vindas, livro em `/guia`, kit inicial único em `/kit` e retorno por `/nemeton` ou `/spawn`.
 - Lápides privadas preservam os itens da morte sem anúncios globais; `/lapide` mostra a posição e entrega uma bússola de recuperação.
 - `/troca` e `/comercio` abrem uma negociação direta com confirmação dos dois jogadores. A tela pode ser fechada e retomada sem perder a oferta.
 - `/mapa` entrega um mapa nativo Java/Bedrock; o squaremap oferece uma visão ao vivo no navegador sem mod de cliente.
@@ -52,7 +52,7 @@ Convide o bot com os escopos `bot` e `applications.commands` e conceda apenas `M
 
 ## Primeiro lançamento
 
-1. Confirme a posição real do Nemeton em `plugins/NemetonCore/config.yml`; na alpha atual ela é `world 22032.5 67.0 -12375.5`.
+1. Confirme a posição real do Nemeton em `plugins/NemetonCore/config.yml`; na alpha atual ela é `world 16064.5 78.0 -32046.5`, com centro protegido em `16064.5, -32064.5` e raio `42`.
 2. Configure o cargo `Aprovado`, o vínculo obrigatório e os canais/voz do DiscordSRV.
 3. Teste `/troca` entre Java e Bedrock, incluindo fechar a interface, usar `/troca abrir`, confirmar e cancelar.
 4. Teste `/mapa`, a receita da `/mochila` e os quatro NPCs tanto no Java quanto no Bedrock.

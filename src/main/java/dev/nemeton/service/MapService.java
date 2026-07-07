@@ -48,7 +48,7 @@ public final class MapService implements TabExecutor {
         }
         String publicUrl = liveMapUrl();
         if (publicUrl != null && !publicUrl.isBlank()) {
-            player.sendMessage("§6Mapa ao vivo: §f" + publicUrl);
+            player.sendMessage("§6Mapa ao vivo: §f" + centeredLiveMapUrl(publicUrl));
         }
         player.sendMessage("§7Lápides ficam privadas: §f/lapide§7 mostra as coordenadas e aponta a bússola sem poluir o mapa de todos.");
         return true;
@@ -61,6 +61,14 @@ public final class MapService implements TabExecutor {
             catch (IOException exception) { plugin.getLogger().warning("Não foi possível ler map-url.txt: " + exception.getMessage()); }
         }
         return plugin.getConfig().getString("map.public-url", "");
+    }
+
+    private String centeredLiveMapUrl(String baseUrl) {
+        String url = baseUrl.strip();
+        if (url.contains("world=") || url.contains("uuid=")) return url;
+        String separator = url.contains("?") ? "&" : "?";
+        return url + separator + "world=minecraft_overworld&zoom=3&x="
+                + Math.round(settings.hub().centerX()) + "&z=" + Math.round(settings.hub().centerZ());
     }
 
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) { return List.of(); }

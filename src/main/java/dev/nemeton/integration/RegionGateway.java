@@ -45,6 +45,7 @@ public final class RegionGateway {
         region.setFlag(Flags.CREEPER_EXPLOSION, StateFlag.State.DENY);
         region.setFlag(Flags.OTHER_EXPLOSION, StateFlag.State.DENY);
         region.setFlag(Flags.MOB_DAMAGE, StateFlag.State.DENY);
+        region.setFlag(Flags.MOB_SPAWNING, StateFlag.State.DENY);
         RegionManager manager = manager(world);
         manager.removeRegion("nemeton_hub");
         manager.addRegion(region);
