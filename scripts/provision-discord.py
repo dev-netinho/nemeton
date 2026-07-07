@@ -163,6 +163,7 @@ def apply_server_config(root: pathlib.Path, result: dict, invite_url: str) -> No
     values = {
         "enabled": "true",
         "guild-id": repr(result["guild_id"]),
+        "bot-token": repr(os.environ["DISCORD_BOT_TOKEN"]),
         "clans-category-id": repr(result["clans_category_id"]),
         "alerts-channel-id": repr(result["alerts_channel_id"]),
         "approved-role-id": repr(result["approved_role_id"]),
@@ -201,6 +202,7 @@ def apply_server_config(root: pathlib.Path, result: dict, invite_url: str) -> No
     output = root / "discord-provision.json"
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
     os.chmod(env, 0o600)
+    os.chmod(core, 0o600)
     os.chmod(discord, 0o600)
     os.chmod(output, 0o600)
 
