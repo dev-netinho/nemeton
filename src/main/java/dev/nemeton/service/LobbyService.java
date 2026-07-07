@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
 import org.bukkit.Axis;
+import org.bukkit.block.Beacon;
 import org.bukkit.block.Block;
 import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
@@ -23,6 +24,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
@@ -152,6 +154,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         building = true;
         List<Runnable> changes = new ArrayList<>();
         removeLobbyMobs(world);
+        planCleanClearing(world, changes);
         planCoreTree(world, changes);
         planPaths(world, changes);
         planBoundary(world, changes);
@@ -168,9 +171,10 @@ public final class LobbyService implements Listener, CommandExecutor {
                 if (iterator.hasNext()) return;
                 cancel();
                 building = false;
+                activateBeacon(world);
                 spawnLobbyEntities();
                 world.save();
-                sender.sendMessage("§aReforma concluída. Caminhos, limite seguro, portais, luzes e NPCs estão prontos.");
+                sender.sendMessage("§aReforma concluída. Clareira limpa, beacon ativo, caminhos, limite seguro, portais e NPCs estão prontos.");
             }
         }.runTaskTimer(plugin, 1L, 1L);
     }
@@ -215,6 +219,35 @@ public final class LobbyService implements Listener, CommandExecutor {
         sender.sendMessage("§7Superfície: " + topEntries(surfaces));
     }
 
+    private void planCleanClearing(World world, List<Runnable> changes) {
+        int cx = blockCenterX(), cz = blockCenterZ();
+        int radius = visualRadius() + 3;
+        int maxY = Math.min(world.getMaxHeight() - 2, 150);
+        for (int x = cx - radius; x <= cx + radius; x++) {
+            for (int z = cz - radius; z <= cz + radius; z++) {
+                double distance = Math.hypot(x - cx, z - cz);
+                if (distance > radius) continue;
+                int base = terrainSurfaceY(world, x, z);
+                int fx = x, fz = z, fy = base;
+                if (distance <= radius - 2) {
+                    changes.add(() -> {
+                        Block surface = world.getBlockAt(fx, fy, fz);
+                        if (canBecomeMeadow(surface.getType())) {
+                            surface.setType(Math.floorMod(fx * 17 + fz * 31, 9) == 0 ? Material.MOSS_BLOCK : Material.GRASS_BLOCK, false);
+                        }
+                    });
+                }
+                for (int y = base + 1; y <= maxY; y++) {
+                    int cy = y;
+                    changes.add(() -> {
+                        Block block = world.getBlockAt(fx, cy, fz);
+                        if (shouldClearLobbyDecoration(block.getType())) block.setType(Material.AIR, false);
+                    });
+                }
+            }
+        }
+    }
+
     private boolean isWaterSurface(Material material) {
         return material == Material.WATER || material == Material.SEAGRASS || material == Material.TALL_SEAGRASS
                 || material == Material.KELP || material == Material.KELP_PLANT || material == Material.BUBBLE_COLUMN
@@ -243,21 +276,9 @@ public final class LobbyService implements Listener, CommandExecutor {
 
     private void planCoreTree(World world, List<Runnable> changes) {
         int cx = blockCenterX(), cz = blockCenterZ();
-        int ground = naturalSurfaceY(world, cx, cz);
+        int ground = terrainSurfaceY(world, cx, cz);
 
-        for (int x = cx - 12; x <= cx + 12; x++) {
-            for (int z = cz - 12; z <= cz + 12; z++) {
-                for (int y = ground + 1; y <= ground + 24; y++) {
-                    int fx = x, fy = y, fz = z;
-                    changes.add(() -> {
-                        Block block = world.getBlockAt(fx, fy, fz);
-                        if (block.getType().isAir() || block.isPassable() || block.getType().name().endsWith("_LEAVES")) {
-                            block.setType(Material.AIR, false);
-                        }
-                    });
-                }
-            }
-        }
+        clearColumn(world, changes, cx, cz, ground + 1, world.getMaxHeight() - 2);
 
         Material[] pyramid = {Material.IRON_BLOCK, Material.IRON_BLOCK, Material.GOLD_BLOCK, Material.EMERALD_BLOCK};
         for (int layer = 0; layer < 4; layer++) {
@@ -272,25 +293,21 @@ public final class LobbyService implements Listener, CommandExecutor {
             }
         }
         changes.add(() -> set(world, cx, ground + 1, cz, Material.BEACON));
-        changes.add(() -> set(world, cx, ground + 2, cz, Material.LIME_STAINED_GLASS));
-        for (int y = ground + 3; y <= ground + 30; y++) {
-            int fy = y;
-            changes.add(() -> set(world, cx, fy, cz, Material.AIR));
-        }
+        clearColumn(world, changes, cx, cz, ground + 2, world.getMaxHeight() - 2);
 
-        int[][] trunk = {
-                {-3, -2}, {-3, -1}, {-3, 1}, {-3, 2},
-                {3, -2}, {3, -1}, {3, 1}, {3, 2},
-                {-2, -3}, {-1, -3}, {1, -3}, {2, -3},
-                {-2, 3}, {-1, 3}, {1, 3}, {2, 3}
-        };
-        for (int[] point : trunk) {
-            int x = cx + point[0], z = cz + point[1];
-            int localGround = naturalSurfaceY(world, x, z);
-            int height = 12 + Math.floorMod(point[0] * 7 + point[1] * 11, 4);
-            for (int y = localGround + 1; y <= ground + height; y++) {
-                int fy = y;
-                changes.add(log(world, x, fy, z, Material.DARK_OAK_LOG, Axis.Y));
+        for (int dx = -3; dx <= 3; dx++) {
+            for (int dz = -3; dz <= 3; dz++) {
+                double distance = Math.hypot(dx, dz);
+                if (distance < 1.85 || distance > 3.1) continue;
+                if (Math.abs(dx) == 3 && Math.abs(dz) == 3) continue;
+                int x = cx + dx, z = cz + dz;
+                int localGround = terrainSurfaceY(world, x, z);
+                int top = ground + 14 + Math.floorMod(dx * 7 + dz * 11, 3);
+                for (int y = localGround + 1; y <= top; y++) {
+                    int fy = y;
+                    Material material = Math.floorMod(dx + dz + y, 5) == 0 ? Material.STRIPPED_DARK_OAK_LOG : Material.DARK_OAK_LOG;
+                    changes.add(log(world, x, fy, z, material, Axis.Y));
+                }
             }
         }
 
@@ -299,35 +316,35 @@ public final class LobbyService implements Listener, CommandExecutor {
         };
         for (int[] direction : directions) {
             Axis axis = Math.abs(direction[0]) >= Math.abs(direction[1]) ? Axis.X : Axis.Z;
-            int length = direction[0] == 0 || direction[1] == 0 ? 16 : 12;
+            int length = direction[0] == 0 || direction[1] == 0 ? 10 : 7;
             for (int step = 4; step <= length; step++) {
                 int x = cx + direction[0] * step;
                 int z = cz + direction[1] * step;
-                int y = naturalSurfaceY(world, x, z);
+                int y = terrainSurfaceY(world, x, z);
                 int fx = x, fy = y, fz = z;
                 Material groundMaterial = step % 3 == 0 ? Material.ROOTED_DIRT : Material.MOSS_BLOCK;
                 changes.add(() -> set(world, fx, fy, fz, groundMaterial));
-                if (step % 2 == 0) changes.add(log(world, fx, fy + 1, fz, Material.SPRUCE_LOG, axis));
-                if (step == length || step % 5 == 0) changes.add(leaves(world, fx, fy + 2, fz, Material.FLOWERING_AZALEA_LEAVES));
+                if (step % 3 == 0) changes.add(log(world, fx, fy + 1, fz, Material.DARK_OAK_LOG, axis));
             }
         }
 
         for (int[] direction : directions) {
             Axis axis = Math.abs(direction[0]) >= Math.abs(direction[1]) ? Axis.X : Axis.Z;
-            int startY = ground + 8 + Math.floorMod(direction[0] * 5 + direction[1] * 3, 4);
-            int length = direction[0] == 0 || direction[1] == 0 ? 9 : 7;
+            int startY = ground + 10 + Math.floorMod(direction[0] * 5 + direction[1] * 3, 3);
+            int length = direction[0] == 0 || direction[1] == 0 ? 8 : 6;
             for (int step = 0; step <= length; step++) {
                 int x = cx + direction[0] * (3 + step);
                 int z = cz + direction[1] * (3 + step);
                 int y = startY + step / 3;
                 changes.add(log(world, x, y, z, Material.DARK_OAK_LOG, axis));
+                if (step >= length - 1) planLeafCluster(changes, world, x, y, z, 2);
             }
         }
 
         Material[] leafPalette = {Material.OAK_LEAVES, Material.DARK_OAK_LEAVES, Material.AZALEA_LEAVES, Material.FLOWERING_AZALEA_LEAVES};
-        for (int y = ground + 9; y <= ground + 19; y++) {
-            double vertical = Math.abs((ground + 14.0) - y);
-            double radius = 11.5 - vertical * 0.85;
+        for (int y = ground + 11; y <= ground + 22; y++) {
+            double vertical = Math.abs((ground + 16.0) - y);
+            double radius = 9.5 - vertical * 0.75;
             for (int dx = (int) -Math.ceil(radius); dx <= Math.ceil(radius); dx++) {
                 for (int dz = (int) -Math.ceil(radius); dz <= Math.ceil(radius); dz++) {
                     if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) continue;
@@ -336,6 +353,20 @@ public final class LobbyService implements Listener, CommandExecutor {
                     if (Math.floorMod(dx * 13 + dz * 19 + y * 7, 23) == 0) continue;
                     Material leaf = leafPalette[Math.floorMod(dx * 5 + dz * 3 + y, leafPalette.length)];
                     changes.add(leaves(world, cx + dx, y, cz + dz, leaf));
+                }
+            }
+        }
+    }
+
+    private void planLeafCluster(List<Runnable> changes, World world, int cx, int cy, int cz, int radius) {
+        Material[] palette = {Material.OAK_LEAVES, Material.DARK_OAK_LEAVES, Material.FLOWERING_AZALEA_LEAVES};
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dy = -radius; dy <= radius; dy++) {
+                for (int dz = -radius; dz <= radius; dz++) {
+                    if (Math.hypot(Math.hypot(dx, dz), dy * 0.8) > radius + 0.35) continue;
+                    if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1 && dy > 0) continue;
+                    Material leaf = palette[Math.floorMod(cx + dx * 7 + cy + dy * 11 + cz + dz * 13, palette.length)];
+                    changes.add(leaves(world, cx + dx, cy + dy, cz + dz, leaf));
                 }
             }
         }
@@ -475,7 +506,7 @@ public final class LobbyService implements Listener, CommandExecutor {
             double angle = Math.toRadians(degree + 22.5);
             int x = cx + (int) Math.round(Math.cos(angle) * Math.max(22, radius - 12));
             int z = cz + (int) Math.round(Math.sin(angle) * Math.max(22, radius - 12));
-            int y = naturalSurfaceY(world, x, z);
+            int y = terrainSurfaceY(world, x, z);
             changes.add(() -> set(world, x, y + 1, z, Material.MOSSY_COBBLESTONE_WALL));
             changes.add(() -> set(world, x, y + 2, z, Material.SPRUCE_FENCE));
             changes.add(() -> set(world, x, y + 3, z, Material.LANTERN));
@@ -488,7 +519,7 @@ public final class LobbyService implements Listener, CommandExecutor {
             int flowerRadius = Math.max(22, radius - 9) + Math.floorMod(degree, 5);
             int x = cx + (int) Math.round(Math.cos(angle) * flowerRadius);
             int z = cz + (int) Math.round(Math.sin(angle) * flowerRadius);
-            int y = naturalSurfaceY(world, x, z);
+            int y = terrainSurfaceY(world, x, z);
             Material flower = flowers[(degree / 12) % flowers.length];
             changes.add(() -> {
                 Block above = world.getBlockAt(x, y + 1, z);
@@ -633,6 +664,13 @@ public final class LobbyService implements Listener, CommandExecutor {
         });
     }
 
+    private void clearColumn(World world, List<Runnable> changes, int x, int z, int minY, int maxY) {
+        for (int y = minY; y <= maxY; y++) {
+            int fy = y;
+            changes.add(() -> set(world, x, fy, z, Material.AIR));
+        }
+    }
+
     private int naturalSurfaceY(World world, int x, int z) {
         int maximum = Math.min(world.getMaxHeight() - 2, 110);
         for (int y = maximum; y >= world.getMinHeight(); y--) {
@@ -640,6 +678,70 @@ public final class LobbyService implements Listener, CommandExecutor {
             if (isGround(material)) return y;
         }
         return world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+    }
+
+    private int terrainSurfaceY(World world, int x, int z) {
+        int maximum = Math.min(world.getMaxHeight() - 2, 130);
+        for (int y = maximum; y >= world.getMinHeight(); y--) {
+            Material material = world.getBlockAt(x, y, z).getType();
+            if (isTerrainBase(material)) return y;
+        }
+        return world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+    }
+
+    private boolean isTerrainBase(Material material) {
+        return switch (material) {
+            case GRASS_BLOCK, DIRT, COARSE_DIRT, ROOTED_DIRT, PODZOL, MYCELIUM, MOSS_BLOCK,
+                    STONE, ANDESITE, DIORITE, GRANITE, SAND, RED_SAND, GRAVEL, CLAY,
+                    DIRT_PATH, PACKED_MUD, MUD_BRICKS, COBBLESTONE, MOSSY_COBBLESTONE,
+                    STONE_BRICKS, MOSSY_STONE_BRICKS, SNOW_BLOCK -> true;
+            default -> false;
+        };
+    }
+
+    private boolean canBecomeMeadow(Material material) {
+        return switch (material) {
+            case GRASS_BLOCK, DIRT, COARSE_DIRT, ROOTED_DIRT, PODZOL, MYCELIUM, SNOW_BLOCK,
+                    STONE, ANDESITE, DIORITE, GRANITE -> true;
+            default -> false;
+        };
+    }
+
+    private boolean shouldClearLobbyDecoration(Material material) {
+        if (material.isAir() || material == Material.WATER || material == Material.LAVA) return false;
+        String name = material.name();
+        if (name.endsWith("_LEAVES") || name.endsWith("_LOG") || name.endsWith("_WOOD")
+                || name.endsWith("_FENCE") || name.endsWith("_FENCE_GATE") || name.endsWith("_WALL")
+                || name.endsWith("_WOOL") || name.endsWith("_CARPET") || name.endsWith("_BANNER")
+                || name.endsWith("_SAPLING") || name.endsWith("_STAINED_GLASS")) return true;
+        return switch (material) {
+            case BEACON, IRON_BLOCK, GOLD_BLOCK, EMERALD_BLOCK, DIAMOND_BLOCK,
+                    LANTERN, IRON_CHAIN, TORCH, SOUL_TORCH,
+                    CARTOGRAPHY_TABLE, CRAFTING_TABLE, FLETCHING_TABLE, SMITHING_TABLE,
+                    BARREL, CHEST, LODESTONE, BOOKSHELF,
+                    SHORT_GRASS, TALL_GRASS, FERN, LARGE_FERN, VINE, GLOW_LICHEN,
+                    DANDELION, POPPY, CORNFLOWER, OXEYE_DAISY, ALLIUM, AZURE_BLUET,
+                    FLOWERING_AZALEA, AZALEA, DEAD_BUSH, MOSS_CARPET -> true;
+            default -> false;
+        };
+    }
+
+    private void activateBeacon(World world) {
+        int cx = blockCenterX(), cz = blockCenterZ();
+        for (int y = world.getMinHeight(); y < world.getMaxHeight(); y++) {
+            Block block = world.getBlockAt(cx, y, cz);
+            if (block.getType() != Material.BEACON) continue;
+            for (int clearY = y + 1; clearY < world.getMaxHeight(); clearY++) {
+                Block above = world.getBlockAt(cx, clearY, cz);
+                if (!above.getType().isAir()) above.setType(Material.AIR, false);
+            }
+            if (block.getState() instanceof Beacon beacon) {
+                beacon.setPrimaryEffect(PotionEffectType.SPEED);
+                beacon.setSecondaryEffect(PotionEffectType.REGENERATION);
+                beacon.update(true, true);
+            }
+            return;
+        }
     }
 
     private boolean isGround(Material material) {
