@@ -5,7 +5,7 @@
 - Verificar `docker compose -f compose.yml ps` e o histórico de alertas.
 - Testar Java em `100.123.99.34:25565` dentro da Tailnet e Bedrock público em `documents-voicing.gl.at.ply.gg:59460`.
 - Confirmar que o `playit` está rodando: `ps -p "$(cat runtime/playit/state/playit.pid)" -o pid,etime,cmd`.
-- Comandos da experiência alpha: `/guia`, `/kit`, `/nemeton`, `/spawn`, `/mapa`, `/mochila`, `/lapide`, `/troca`, `/santuario ajuda` e `/clan ajuda`.
+- Comandos da experiência alpha: `/guia`, `/kit`, `/nemeton`, `/spawn`, `/mapa`, `/mochila`, `/lapide`, `/troca`, `/mods`, `/mods itens`, `/santuario ajuda` e `/clan ajuda`.
 - Rodar `spark healthreport` quando MSPT subir; não instalar plugins de limpeza automática às cegas.
 - Conferir espaço antes de expandir o world border ou pregenerar chunks.
 - Nunca atualizar Paper, Geyser ou WorldGuard diretamente em produção. Clonar os volumes e testar a matriz primeiro.

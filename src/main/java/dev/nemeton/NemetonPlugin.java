@@ -35,9 +35,11 @@ public final class NemetonPlugin extends JavaPlugin {
             GraveService graves = new GraveService(this); TradeService trades = new TradeService(this); this.tradeService = trades;
             LobbyService lobby = new LobbyService(this, settings); MapService maps = new MapService(this, settings);
             BackpackService backpacks = new BackpackService(this); this.backpackService = backpacks;
+            NemetonPlusService plus = new NemetonPlusService(this);
             registerCommand("clan", commands); registerCommand("santuario", commands); registerCommand("raid", commands); registerCommand("nemeton", commands); registerCommand("guia", commands); registerCommand("kit", commands);
             registerCommand("lapide", graves); registerCommand("troca", trades);
             registerCommand("mapa", maps); registerCommand("mochila", backpacks);
+            registerCommand("mods", plus);
             PluginCommand adminCommand = getCommand("nemetonadmin"); if (adminCommand == null) throw new IllegalStateException("Comando ausente: nemetonadmin"); adminCommand.setExecutor(lobby);
             Bukkit.getPluginManager().registerEvents(new ProtectionListener(state, claims, raids, discord), this);
             Bukkit.getPluginManager().registerEvents(new PlayerListener(this, settings, raids, experience), this);
@@ -45,6 +47,7 @@ public final class NemetonPlugin extends JavaPlugin {
             Bukkit.getPluginManager().registerEvents(trades, this);
             Bukkit.getPluginManager().registerEvents(lobby, this);
             Bukkit.getPluginManager().registerEvents(backpacks, this);
+            Bukkit.getPluginManager().registerEvents(plus, this);
             Bukkit.getPluginManager().registerEvents(new org.bukkit.event.Listener() {
                 @org.bukkit.event.EventHandler public void move(org.bukkit.event.player.PlayerMoveEvent event) { if (event.getTo() != null) teleports.moved(event.getPlayer()); }
                 @org.bukkit.event.EventHandler public void combat(org.bukkit.event.entity.EntityDamageByEntityEvent event) { if (event.getEntity() instanceof org.bukkit.entity.Player victim) teleports.tagCombat(victim.getUniqueId()); if (event.getDamager() instanceof org.bukkit.entity.Player attacker) teleports.tagCombat(attacker.getUniqueId()); }

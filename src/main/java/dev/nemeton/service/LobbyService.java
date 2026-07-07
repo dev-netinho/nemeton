@@ -102,6 +102,11 @@ public final class LobbyService implements Listener, CommandExecutor {
                 player.sendMessage("§b§lTarin, Batedor");
                 player.sendMessage("§7Além dos portais começa o survival. Faça uma mochila, marque seu santuário e use §f/lapide§7 após uma morte.");
             }
+            case "mods" -> {
+                player.sendMessage("§d§lNara, Artesã do Nemeton+");
+                player.sendMessage("§7Use §f/mods§7 para ver minimap opcional, itens autorais, recompensas de boss e próximos resource packs.");
+                player.sendMessage("§7No Lunar: §fRight Shift → Mods → Minimap§7. No Bedrock: §f/mapa§7 e mapa web.");
+            }
             default -> { }
         }
     }
@@ -161,6 +166,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         planGateways(world, changes);
         planNpcPavilions(world, changes);
         planLanternsAndGardens(world, changes);
+        planBeaconBase(world, changes);
         sender.sendMessage("§6Reforma do Nemeton iniciada: " + changes.size() + " alterações em lotes seguros.");
 
         Iterator<Runnable> iterator = changes.iterator();
@@ -358,6 +364,25 @@ public final class LobbyService implements Listener, CommandExecutor {
         }
     }
 
+    private void planBeaconBase(World world, List<Runnable> changes) {
+        int cx = blockCenterX(), cz = blockCenterZ();
+        int beaconY = beaconY();
+        Material[] pyramid = {Material.IRON_BLOCK, Material.IRON_BLOCK, Material.GOLD_BLOCK, Material.EMERALD_BLOCK};
+        for (int layer = 0; layer < 4; layer++) {
+            int half = 4 - layer;
+            int y = beaconY - 4 + layer;
+            Material material = pyramid[layer];
+            for (int dx = -half; dx <= half; dx++) {
+                for (int dz = -half; dz <= half; dz++) {
+                    int x = cx + dx, z = cz + dz;
+                    changes.add(() -> set(world, x, y, z, material));
+                }
+            }
+        }
+        changes.add(() -> set(world, cx, beaconY, cz, Material.BEACON));
+        clearColumn(world, changes, cx, cz, beaconY + 1, world.getMaxHeight() - 2);
+    }
+
     private void planLeafCluster(List<Runnable> changes, World world, int cx, int cy, int cz, int radius) {
         Material[] palette = {Material.OAK_LEAVES, Material.DARK_OAK_LEAVES, Material.FLOWERING_AZALEA_LEAVES};
         for (int dx = -radius; dx <= radius; dx++) {
@@ -401,7 +426,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         int cx = blockCenterX(), cz = blockCenterZ();
         Set<Long> planned = new HashSet<>();
         int radius = visualRadius();
-        int gateHalf = 4;
+        int gateHalf = 6;
         for (int degree = 0; degree < 360; degree++) {
             double angle = Math.toRadians(degree);
             int dx = (int) Math.round(Math.cos(angle) * radius);
@@ -427,12 +452,12 @@ public final class LobbyService implements Listener, CommandExecutor {
 
     private void planGateway(World world, List<Runnable> changes, int offsetX, int offsetZ, boolean alongX) {
         int cx = blockCenterX(), cz = blockCenterZ();
-        int[] side = {-5, 5};
+        int[] side = {-7, 7};
         int beamY = Integer.MIN_VALUE;
         for (int value : side) {
             int x = cx + offsetX + (alongX ? value : 0);
             int z = cz + offsetZ + (alongX ? 0 : value);
-            beamY = Math.max(beamY, naturalSurfaceY(world, x, z) + 6);
+            beamY = Math.max(beamY, naturalSurfaceY(world, x, z) + 8);
         }
         final int top = beamY;
         for (int value : side) {
@@ -446,10 +471,11 @@ public final class LobbyService implements Listener, CommandExecutor {
                 changes.add(() -> set(world, x, fy, z, material));
             }
         }
-        for (int value = -5; value <= 5; value++) {
+        for (int value = -7; value <= 7; value++) {
             int x = cx + offsetX + (alongX ? value : 0);
             int z = cz + offsetZ + (alongX ? 0 : value);
-            changes.add(() -> set(world, x, top, z, Material.MOSSY_STONE_BRICKS));
+            Material material = Math.abs(value) == 7 ? Material.CHISELED_STONE_BRICKS : Material.MOSSY_STONE_BRICKS;
+            changes.add(() -> set(world, x, top, z, material));
         }
         int middleX = cx + offsetX, middleZ = cz + offsetZ;
         changes.add(() -> set(world, middleX, top - 1, middleZ, Material.IRON_CHAIN));
@@ -461,6 +487,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         planPavilion(world, changes, 14, 8, Material.YELLOW_WOOL, Material.BARREL, Material.CRAFTING_TABLE);
         planPavilion(world, changes, -14, -8, Material.RED_WOOL, Material.LODESTONE, Material.SMITHING_TABLE);
         planPavilion(world, changes, 8, -14, Material.LIGHT_BLUE_WOOL, Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE);
+        planPavilion(world, changes, 18, -18, Material.PURPLE_WOOL, Material.ENCHANTING_TABLE, Material.SMITHING_TABLE);
     }
 
     private void planPavilion(World world, List<Runnable> changes, int dx, int dz, Material accent, Material workstation, Material secondary) {
@@ -547,9 +574,21 @@ public final class LobbyService implements Listener, CommandExecutor {
                 Component.text("Borin • Clãs", NamedTextColor.RED));
         spawnNpc(world, "wilds", 8, -14, DyeColor.LIGHT_BLUE, Material.COMPASS,
                 Component.text("Tarin • Exploração", NamedTextColor.AQUA));
+        spawnNpc(world, "mods", 18, -18, DyeColor.PURPLE, Material.NETHERITE_SWORD,
+                Component.text("Nara • Nemeton+", NamedTextColor.LIGHT_PURPLE));
 
         spawnLabel(world, 0, Math.max(17, visualRadius() / 2), 4.2, Component.text("NEMETON\n", NamedTextColor.GOLD)
                 .append(Component.text("ZONA SEGURA • sem PvP • sem grife", NamedTextColor.GREEN)), "label:welcome");
+        spawnLabel(world, -10, 14, 3.4, Component.text("/guia  /kit  /mapa\n", NamedTextColor.GREEN)
+                .append(Component.text("primeiros passos", NamedTextColor.GRAY)), "label:cmd:guide");
+        spawnLabel(world, 14, 8, 3.4, Component.text("/troca  /comercio\n", NamedTextColor.GOLD)
+                .append(Component.text("negociação segura", NamedTextColor.GRAY)), "label:cmd:trade");
+        spawnLabel(world, -14, -8, 3.4, Component.text("/clan  /raid\n", NamedTextColor.RED)
+                .append(Component.text("grupo, claims e guerras", NamedTextColor.GRAY)), "label:cmd:clans");
+        spawnLabel(world, 8, -14, 3.4, Component.text("/santuario  /lapide  /mochila\n", NamedTextColor.AQUA)
+                .append(Component.text("base pessoal e exploração", NamedTextColor.GRAY)), "label:cmd:wilds");
+        spawnLabel(world, 18, -18, 3.4, Component.text("/mods  /mods itens\n", NamedTextColor.LIGHT_PURPLE)
+                .append(Component.text("Vanilla+ autoral e minimap", NamedTextColor.GRAY)), "label:cmd:mods");
         int exit = gateOffset() - 2;
         spawnExitLabel(world, 0, -exit, "NORTE");
         spawnExitLabel(world, 0, exit, "SUL");
@@ -560,7 +599,7 @@ public final class LobbyService implements Listener, CommandExecutor {
     private void loadEntityChunks(World world) {
         int exit = gateOffset() - 2;
         int[][] offsets = {
-                {-10, 14}, {14, 8}, {-14, -8}, {8, -14},
+                {-10, 14}, {14, 8}, {-14, -8}, {8, -14}, {18, -18},
                 {0, Math.max(17, visualRadius() / 2)}, {0, -exit}, {0, exit}, {-exit, 0}, {exit, 0}
         };
         for (int[] offset : offsets) {
@@ -779,6 +818,7 @@ public final class LobbyService implements Listener, CommandExecutor {
     private World world() { return Bukkit.getWorld(settings.hub().world()); }
     private int blockCenterX() { return (int) Math.floor(settings.hub().centerX()); }
     private int blockCenterZ() { return (int) Math.floor(settings.hub().centerZ()); }
+    private int beaconY() { return (int) Math.floor(settings.hub().y()) + 1; }
     private int visualRadius() { return Math.max(MIN_VISUAL_RADIUS, Math.min(settings.hub().radius(), MAX_VISUAL_RADIUS)); }
     private int gateOffset() { return Math.max(visualRadius() - 3, 26); }
 }

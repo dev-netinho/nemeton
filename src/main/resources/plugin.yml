@@ -41,6 +41,10 @@ commands:
     description: Abre sua mochila pessoal fabricável.
     usage: /mochila
     aliases: [backpack]
+  mods:
+    description: Guia Vanilla+ e itens autorais do Nemeton.
+    usage: /mods
+    aliases: [vanillaplus, nemetonplus, reliquias]
   nemetonadmin:
     description: Manutenção visual e interativa do Nemeton.
     usage: /nemetonadmin construir|npcs|status
