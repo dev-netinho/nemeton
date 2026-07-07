@@ -150,7 +150,7 @@ public final class BackpackService implements Listener, TabExecutor {
         meta.displayName(Component.text("Mochila sem dono"));
         meta.lore(List.of(Component.text("Será vinculada a quem fabricar."), Component.text("Clique direito ou use /mochila.")));
         meta.setCustomModelData(7110);
-        meta.setItemModel(new NamespacedKey(plugin, "backpack"));
+        meta.setItemModel(new NamespacedKey("nemeton", "backpack"));
         result.setItemMeta(meta);
         result.editPersistentDataContainer(container -> container.set(tokenKey, PersistentDataType.BYTE, (byte) 1));
 
@@ -167,7 +167,7 @@ public final class BackpackService implements Listener, TabExecutor {
         meta.displayName(Component.text("Mochila de " + player.getName()));
         meta.lore(List.of(Component.text("27 espaços pessoais."), Component.text("Clique direito ou use /mochila.")));
         meta.setCustomModelData(7110);
-        meta.setItemModel(new NamespacedKey(plugin, "backpack"));
+        meta.setItemModel(new NamespacedKey("nemeton", "backpack"));
         item.setItemMeta(meta);
         item.editPersistentDataContainer(container -> {
             container.set(tokenKey, PersistentDataType.BYTE, (byte) 1);

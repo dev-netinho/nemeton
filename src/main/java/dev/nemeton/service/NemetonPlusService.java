@@ -246,7 +246,7 @@ public final class NemetonPlusService implements Listener, TabExecutor {
         meta.lore(Arrays.stream(lore).map(Component::text).toList());
         meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, id);
         meta.setCustomModelData(modelId(id));
-        meta.setItemModel(new NamespacedKey(plugin, id));
+        meta.setItemModel(new NamespacedKey("nemeton", id));
         meta.setEnchantmentGlintOverride(true);
         meta.setRarity(id.contains("heart") ? ItemRarity.EPIC : ItemRarity.RARE);
         item.setItemMeta(meta);

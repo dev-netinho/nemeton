@@ -57,5 +57,5 @@ map:
 
 resource-pack:
   java-url: 'https://raw.githubusercontent.com/dev-netinho/nemeton/main/resourcepacks/dist/Nemeton-Java.zip'
-  java-sha1: '5d3ec0a9b809e1f9c62665e5257d1d9e2debf34b'
+  java-sha1: '55c542426ba2d90ed49742df2f1f4716ce31ad7a'
   force-java: false

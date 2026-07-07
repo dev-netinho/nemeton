@@ -162,6 +162,11 @@ def build_java(base_root: Path) -> None:
         write_json(JAVA / "assets" / "nemeton" / "items" / f"{name}.json", {
             "model": {"type": "minecraft:model", "model": f"nemeton:item/{name}"}
         })
+        # Compatibility for items issued before the public namespace was fixed.
+        # NamespacedKey(plugin, id) serialized them as nemetoncore:<id>.
+        write_json(JAVA / "assets" / "nemetoncore" / "items" / f"{name}.json", {
+            "model": {"type": "minecraft:model", "model": f"nemeton:item/{name}"}
+        })
     write_json(JAVA / "assets" / "minecraft" / "lang" / "pt_br.json", {
         "resourcePack.nemeton.name": "Nemeton Visual Pack",
         "resourcePack.nemeton.description": "Texturas Vanilla+ do Nemeton"
