@@ -15,6 +15,8 @@ import org.bukkit.command.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -26,6 +28,10 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.EulerAngle;
+import org.bukkit.util.Transformation;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 import java.util.*;
 
@@ -40,6 +46,7 @@ public final class LobbyService implements Listener, CommandExecutor {
     private final NamespacedKey entityKey;
     private final Map<UUID, Boolean> safeState = new HashMap<>();
     private boolean building;
+    private boolean spawningLobbyEntity;
 
     public LobbyService(JavaPlugin plugin, Settings settings) {
         this.plugin = plugin;
@@ -57,6 +64,7 @@ public final class LobbyService implements Listener, CommandExecutor {
 
     @EventHandler(ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
+        if (spawningLobbyEntity) return;
         if (isInside(event.getLocation())) event.setCancelled(true);
     }
 
@@ -80,35 +88,74 @@ public final class LobbyService implements Listener, CommandExecutor {
     @EventHandler(ignoreCancelled = true)
     public void onNpcInteract(PlayerInteractEntityEvent event) {
         if (event.getHand() != EquipmentSlot.HAND) return;
-        String role = event.getRightClicked().getPersistentDataContainer().get(entityKey, PersistentDataType.STRING);
-        if (role == null || !role.startsWith("npc:")) return;
-        event.setCancelled(true);
-        Player player = event.getPlayer();
+        if (handleNpcInteraction(event.getPlayer(), event.getRightClicked())) event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onNpcInteractAt(PlayerInteractAtEntityEvent event) {
+        if (event.getHand() != EquipmentSlot.HAND) return;
+        if (handleNpcInteraction(event.getPlayer(), event.getRightClicked())) event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onNpcArmorManipulate(PlayerArmorStandManipulateEvent event) {
+        if (event.getRightClicked().getPersistentDataContainer().has(entityKey, PersistentDataType.STRING)) {
+            event.setCancelled(true);
+            handleNpcInteraction(event.getPlayer(), event.getRightClicked());
+        }
+    }
+
+    private boolean handleNpcInteraction(Player player, Entity entity) {
+        String role = entity.getPersistentDataContainer().get(entityKey, PersistentDataType.STRING);
+        if (role == null || !role.startsWith("npc:")) return false;
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 0.8f, 1.1f);
         switch (role.substring(4)) {
             case "guide" -> {
-                player.sendMessage("§a§lEira, Guia do Nemeton");
-                player.sendMessage("§7Aqui é uma zona segura. Leia §f/guia§7, pegue §f/kit§7 e use §f/mapa§7 para se orientar.");
+                npcCard(player, "§a§lEira, Guia do Nemeton",
+                        "§7Aqui é a zona segura.",
+                        "§f/guia §7mostra o livro inicial.",
+                        "§f/kit §7entrega ferramentas de começo.",
+                        "§f/mapa §7abre orientação Java/Bedrock.");
             }
             case "clans" -> {
-                player.sendMessage("§c§lBorin, Mestre dos Clãs");
-                player.sendMessage("§7Crie uma equipe com §f/clan criar <nome> <tag>§7. Fora daqui, §f/clan claim§7 protege o território conectado.");
+                npcCard(player, "§c§lBorin, Mestre dos Clãs",
+                        "§7Crie ou entre em uma equipe para jogar junto.",
+                        "§f/clan criar <nome> <tag>",
+                        "§f/clan convidar <jogador>",
+                        "§f/clan claim §7protege território conectado.",
+                        "§f/raid status §7mostra conflitos futuros.");
             }
             case "trade" -> {
-                player.sendMessage("§6§lMara, Mercadora");
-                player.sendMessage("§7Negocie sem loja infinita: §f/troca <jogador>§7. A janela pode ser fechada e retomada com §f/troca abrir§7.");
+                npcCard(player, "§6§lMara, Mercadora",
+                        "§7Negocie sem loja infinita e sem moeda virtual.",
+                        "§f/troca <jogador> §7abre troca segura.",
+                        "§7No Java abre uma interface.",
+                        "§7No Bedrock usa modo seguro por chat para evitar kick.");
             }
             case "wilds" -> {
-                player.sendMessage("§b§lTarin, Batedor");
-                player.sendMessage("§7Além dos portais começa o survival. Faça uma mochila, marque seu santuário e use §f/lapide§7 após uma morte.");
+                npcCard(player, "§b§lTarin, Batedor",
+                        "§7Depois dos portões começa o survival.",
+                        "§f/santuario marcar §7protege sua base pessoal.",
+                        "§f/lapide §7aponta para sua última morte.",
+                        "§f/mochila §7abre sua bolsa pessoal.");
             }
             case "mods" -> {
-                player.sendMessage("§d§lNara, Artesã do Nemeton+");
-                player.sendMessage("§7Use §f/mods§7 para ver minimap opcional, itens autorais, recompensas de boss e próximos resource packs.");
-                player.sendMessage("§7No Lunar: §fRight Shift → Mods → Minimap§7. No Bedrock: §f/mapa§7 e mapa web.");
+                npcCard(player, "§d§lNara, Artesã do Nemeton+",
+                        "§7Aqui ficam as adições Vanilla+ autorais.",
+                        "§f/mods §7explica minimap e packs opcionais.",
+                        "§f/mods itens §7lista armas, armaduras e drops.",
+                        "§7No Lunar: Right Shift → Mods → Minimap.");
             }
             default -> { }
         }
+        return true;
+    }
+
+    private void npcCard(Player player, String title, String... lines) {
+        player.sendMessage("§8§m                                                ");
+        player.sendMessage(title);
+        for (String line : lines) player.sendMessage(line);
+        player.sendMessage("§8§m                                                ");
     }
 
     @Override
@@ -298,7 +345,6 @@ public final class LobbyService implements Listener, CommandExecutor {
                 }
             }
         }
-        changes.add(() -> set(world, cx, ground + 1, cz, Material.BEACON));
         clearColumn(world, changes, cx, cz, ground + 2, world.getMaxHeight() - 2);
 
         for (int dx = -3; dx <= 3; dx++) {
@@ -614,21 +660,75 @@ public final class LobbyService implements Listener, CommandExecutor {
         int y = naturalSurfaceY(world, x, z) + 1;
         Location location = new Location(world, x + 0.5, y, z + 0.5);
         world.getChunkAt(location).load();
-        world.spawn(location, Mannequin.class, mannequin -> {
-            mannequin.getPersistentDataContainer().set(entityKey, PersistentDataType.STRING, "npc:" + role);
-            mannequin.customName(name);
-            mannequin.setCustomNameVisible(true);
-            mannequin.setDescription(Component.text("Clique para conversar", NamedTextColor.GRAY));
-            mannequin.setImmovable(true);
-            mannequin.setInvulnerable(true);
-            mannequin.setSilent(true);
-            mannequin.setCollidable(false);
-            mannequin.setPersistent(true);
-            equipNpc(mannequin.getEquipment(), color, heldItem);
-        });
+        spawningLobbyEntity = true;
+        try {
+            world.spawn(location, ArmorStand.class, stand -> {
+                stand.getPersistentDataContainer().set(entityKey, PersistentDataType.STRING, "npc:" + role);
+                stand.customName(name);
+                stand.setCustomNameVisible(true);
+                stand.setInvulnerable(true);
+                stand.setSilent(true);
+                stand.setPersistent(true);
+                stand.setCollidable(false);
+                stand.setGravity(false);
+                stand.setArms(true);
+                stand.setBasePlate(false);
+                stand.setCanMove(false);
+                poseNpc(stand, role);
+                equipNpc(stand.getEquipment(), role, color, heldItem);
+            });
+        } finally {
+            spawningLobbyEntity = false;
+        }
     }
 
-    private void equipNpc(EntityEquipment equipment, DyeColor dyeColor, Material heldItem) {
+    private void poseNpc(ArmorStand stand, String role) {
+        stand.setHeadPose(new EulerAngle(Math.toRadians(0), Math.toRadians(0), Math.toRadians(0)));
+        switch (role) {
+            case "clans" -> {
+                stand.setRightArmPose(new EulerAngle(Math.toRadians(-72), Math.toRadians(12), Math.toRadians(8)));
+                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-35), Math.toRadians(-22), Math.toRadians(-18)));
+                stand.setRightLegPose(new EulerAngle(Math.toRadians(-6), 0, Math.toRadians(4)));
+                stand.setLeftLegPose(new EulerAngle(Math.toRadians(14), 0, Math.toRadians(-6)));
+            }
+            case "trade" -> {
+                stand.setRightArmPose(new EulerAngle(Math.toRadians(-30), Math.toRadians(0), Math.toRadians(-35)));
+                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-68), Math.toRadians(0), Math.toRadians(24)));
+            }
+            case "wilds" -> {
+                stand.setRightArmPose(new EulerAngle(Math.toRadians(-80), Math.toRadians(0), Math.toRadians(18)));
+                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-12), Math.toRadians(0), Math.toRadians(-28)));
+            }
+            case "mods" -> {
+                stand.setRightArmPose(new EulerAngle(Math.toRadians(-55), Math.toRadians(10), Math.toRadians(38)));
+                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-45), Math.toRadians(-12), Math.toRadians(-35)));
+            }
+            default -> {
+                stand.setRightArmPose(new EulerAngle(Math.toRadians(-18), 0, Math.toRadians(22)));
+                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-8), 0, Math.toRadians(-12)));
+            }
+        }
+    }
+
+    private void equipNpc(EntityEquipment equipment, String role, DyeColor dyeColor, Material heldItem) {
+        if (role.equals("clans")) {
+            equipment.setHelmet(new ItemStack(Material.DIAMOND_HELMET));
+            equipment.setChestplate(new ItemStack(Material.DIAMOND_CHESTPLATE));
+            equipment.setLeggings(new ItemStack(Material.NETHERITE_LEGGINGS));
+            equipment.setBoots(new ItemStack(Material.NETHERITE_BOOTS));
+            equipment.setItemInMainHand(new ItemStack(Material.NETHERITE_SWORD));
+            equipment.setItemInOffHand(new ItemStack(Material.SHIELD));
+            return;
+        }
+        if (role.equals("mods")) {
+            equipment.setHelmet(new ItemStack(Material.AMETHYST_SHARD));
+            equipment.setChestplate(leather(Material.LEATHER_CHESTPLATE, dyeColor.getColor()));
+            equipment.setLeggings(new ItemStack(Material.NETHERITE_LEGGINGS));
+            equipment.setBoots(leather(Material.LEATHER_BOOTS, dyeColor.getColor()));
+            equipment.setItemInMainHand(new ItemStack(Material.NETHERITE_SWORD));
+            equipment.setItemInOffHand(new ItemStack(Material.AMETHYST_SHARD));
+            return;
+        }
         org.bukkit.Color color = dyeColor.getColor();
         equipment.setChestplate(leather(Material.LEATHER_CHESTPLATE, color));
         equipment.setLeggings(leather(Material.LEATHER_LEGGINGS, color));
@@ -645,6 +745,10 @@ public final class LobbyService implements Listener, CommandExecutor {
     }
 
     private void spawnLabel(World world, int dx, int dz, double height, Component text, String id) {
+        spawnLabel(world, dx, dz, height, text, id, 1.0f);
+    }
+
+    private void spawnLabel(World world, int dx, int dz, double height, Component text, String id, float scale) {
         int x = blockCenterX() + dx, z = blockCenterZ() + dz;
         int y = naturalSurfaceY(world, x, z);
         world.spawn(new Location(world, x + 0.5, y + height, z + 0.5), TextDisplay.class, display -> {
@@ -654,15 +758,20 @@ public final class LobbyService implements Listener, CommandExecutor {
             display.setSeeThrough(false);
             display.setShadowed(true);
             display.setViewRange(0.7f);
+            display.setTransformation(new Transformation(
+                    new Vector3f(0, 0, 0),
+                    new AxisAngle4f(),
+                    new Vector3f(scale, scale, scale),
+                    new AxisAngle4f()));
             display.setPersistent(true);
         });
     }
 
     private void spawnExitLabel(World world, int dx, int dz, String direction) {
-        spawnLabel(world, dx, dz, 3.2,
+        spawnLabel(world, dx, dz, 4.2,
                 Component.text("SAÍDA " + direction + "\n", NamedTextColor.YELLOW)
                         .append(Component.text("além do portal: terras selvagens", NamedTextColor.GRAY)),
-                "label:exit:" + direction.toLowerCase(Locale.ROOT));
+                "label:exit:" + direction.toLowerCase(Locale.ROOT), 1.9f);
     }
 
     private void faceNearbyPlayers() {
@@ -672,15 +781,15 @@ public final class LobbyService implements Listener, CommandExecutor {
                 new Location(world, settings.hub().centerX(), settings.hub().y(), settings.hub().centerZ()),
                 visualRadius() + 8, 30, visualRadius() + 8)) {
             String role = entity.getPersistentDataContainer().get(entityKey, PersistentDataType.STRING);
-            if (!(entity instanceof Mannequin mannequin) || role == null || !role.startsWith("npc:")) continue;
-            Player nearest = world.getNearbyPlayers(mannequin.getLocation(), 8).stream()
-                    .min(Comparator.comparingDouble(player -> player.getLocation().distanceSquared(mannequin.getLocation())))
+            if (!(entity instanceof ArmorStand stand) || role == null || !role.startsWith("npc:")) continue;
+            Player nearest = world.getNearbyPlayers(stand.getLocation(), 8).stream()
+                    .min(Comparator.comparingDouble(player -> player.getLocation().distanceSquared(stand.getLocation())))
                     .orElse(null);
             if (nearest == null) continue;
-            Location look = mannequin.getLocation();
+            Location look = stand.getLocation();
             double dx = nearest.getX() - look.getX(), dz = nearest.getZ() - look.getZ();
             look.setYaw((float) Math.toDegrees(Math.atan2(-dx, dz)));
-            mannequin.teleport(look);
+            stand.teleport(look);
         }
     }
 

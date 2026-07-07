@@ -7,8 +7,10 @@ Por isso, mods Forge/Fabric que exigem servidor modded não entram diretamente n
 
 - `NemetonCore`: plugin Java próprio com clãs, claims, trocas, mochila, lápide, mapa e Nemeton+.
 - Datapacks Vanilla+: estruturas em chunks novos sem blocos customizados.
-- Resource packs futuros: textura e modelos próprios do Nemeton.
-- Geyser custom content: caminho futuro para mapear itens customizados para Bedrock.
+- Resource packs próprios: um pack Java e um pack Bedrock equivalente.
+- Geyser custom content: mapeia itens customizados para Bedrock.
+
+Não existe um único arquivo de textura que seja nativo para Java e Bedrock ao mesmo tempo. O caminho certo é manter dois packs equivalentes no repositório e testar os dois antes de obrigar o download no login.
 
 ## Nemeton+ alpha
 
@@ -44,3 +46,11 @@ Bedrock não carrega mods Java. Para orientação, o servidor oferece:
 - mapa nativo preenchido
 
 Custom items bonitos para Bedrock devem ser feitos com resource pack Bedrock + mapeamento do Geyser.
+
+## Próximo passo de textura
+
+1. Criar pack Java com modelos dos itens Nemeton+.
+2. Gerar pack Bedrock equivalente.
+3. Criar `custom_mappings` do Geyser.
+4. Testar login Java e Bedrock numa cópia.
+5. Só então ativar o pack como recomendado/obrigatório.
