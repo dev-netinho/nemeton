@@ -1,5 +1,6 @@
 package dev.nemeton.service;
 
+import dev.nemeton.integration.BedrockForms;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -13,7 +14,11 @@ import org.bukkit.event.*;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.*;
+import org.bukkit.inventory.meta.ArmorMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -121,6 +126,22 @@ public final class NemetonPlusService implements Listener, TabExecutor {
     }
 
     private void sendGuide(Player player) {
+        if (BedrockForms.sendSimple(plugin, player,
+                "Nemeton+ Alpha",
+                "O servidor continua crossplay: nada de modpack obrigatório.\n\n"
+                        + "Usamos plugin próprio, datapacks, itens com visual vanilla-safe e, depois dos testes, packs Java/Bedrock equivalentes.\n\n"
+                        + "Java/Lunar: ative o minimap no cliente.\n"
+                        + "Bedrock: use /mapa, Forms nativos e o mapa ao vivo.",
+                index -> {
+                    if (index == 0) sendItems(player);
+                    else if (index == 1) player.performCommand("mapa");
+                    else if (index == 2 && player.hasPermission("nemeton.admin")) giveShowcase(player);
+                },
+                player.hasPermission("nemeton.admin")
+                        ? new String[]{"Ver itens", "Abrir /mapa", "Receber vitrine admin", "Fechar"}
+                        : new String[]{"Ver itens", "Abrir /mapa", "Fechar"})) {
+            return;
+        }
         player.sendMessage("§d§lNemeton+ Alpha");
         player.sendMessage("§7O servidor continua crossplay, então mods pesados de Forge/Fabric não entram no servidor principal.");
         player.sendMessage("§7Aqui vamos usar plugin próprio, datapacks, resource packs e mods opcionais por cliente.");
@@ -132,6 +153,22 @@ public final class NemetonPlusService implements Listener, TabExecutor {
     }
 
     private void sendItems(Player player) {
+        if (BedrockForms.sendSimple(plugin, player,
+                "Itens Nemeton+",
+                "Essência do Nemeton: drop raro de mineração.\n\n"
+                        + "Lâmina do Nemeton: essência + diamante + graveto.\n\n"
+                        + "Machado do Guardião: duas essências + graveto.\n\n"
+                        + "Peitoral Sentinela: peitoral de diamante cercado por essências, com trim/brilho vanilla-safe.\n\n"
+                        + "Wither e Dragão deixam corações especiais para eventos.",
+                index -> {
+                    if (index == 0) sendGuide(player);
+                    else if (index == 1 && player.hasPermission("nemeton.admin")) giveShowcase(player);
+                },
+                player.hasPermission("nemeton.admin")
+                        ? new String[]{"Voltar", "Receber vitrine admin", "Fechar"}
+                        : new String[]{"Voltar", "Fechar"})) {
+            return;
+        }
         player.sendMessage("§d§lItens Nemeton+");
         player.sendMessage("§fEssência do Nemeton §7— chance ao minerar minérios; maior em diamante/esmeralda.");
         player.sendMessage("§fLâmina do Nemeton §7— essência + diamante + graveto.");
@@ -179,7 +216,8 @@ public final class NemetonPlusService implements Listener, TabExecutor {
     private ItemStack chestplate() {
         ItemStack item = tagged(Material.DIAMOND_CHESTPLATE, "sentinel_chestplate", "§aPeitoral Sentinela",
                 "§7Armadura cerimonial dos defensores do Nemeton.",
-                "§8Visual completo virá no resource pack próprio.");
+                "§8Trim e brilho vanilla-safe; pack próprio virá depois.");
+        applyTrim(item, TrimMaterial.AMETHYST, TrimPattern.WARD);
         enchant(item, "protection", 3);
         enchant(item, "unbreaking", 2);
         return item;
@@ -207,8 +245,31 @@ public final class NemetonPlusService implements Listener, TabExecutor {
         meta.displayName(Component.text(name));
         meta.lore(Arrays.stream(lore).map(Component::text).toList());
         meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, id);
+        meta.setCustomModelData(modelId(id));
+        meta.setEnchantmentGlintOverride(true);
+        meta.setRarity(id.contains("heart") ? ItemRarity.EPIC : ItemRarity.RARE);
         item.setItemMeta(meta);
         return item;
+    }
+
+    private int modelId(String id) {
+        return switch (id) {
+            case "root_essence" -> 7101;
+            case "root_blade" -> 7102;
+            case "warden_axe" -> 7103;
+            case "sentinel_chestplate" -> 7104;
+            case "abyss_heart" -> 7105;
+            case "end_heart" -> 7106;
+            default -> 7199;
+        };
+    }
+
+    private void applyTrim(ItemStack item, TrimMaterial material, TrimPattern pattern) {
+        if (item.getItemMeta() instanceof ArmorMeta meta) {
+            meta.setTrim(new ArmorTrim(material, pattern));
+            meta.setEnchantmentGlintOverride(true);
+            item.setItemMeta(meta);
+        }
     }
 
     @SuppressWarnings("deprecation")

@@ -12,11 +12,11 @@ SMP comunitário Java + Bedrock: um mundo persistente, um centro seguro no próp
 - Paper/Geyser/Floodgate, MariaDB, plugins gratuitos, backups restic/rclone e CI organizados em arquivos reproduzíveis.
 - Experiência alpha: Nemeton físico como árvore ancestral em uma planície natural, beacon máximo no núcleo, região segura compacta com WorldGuard, boas-vindas, livro em `/guia`, kit inicial único em `/kit` e retorno por `/nemeton` ou `/spawn`.
 - Lápides privadas preservam os itens da morte sem anúncios globais; `/lapide` mostra a posição e entrega uma bússola de recuperação.
-- `/troca` e `/comercio` abrem uma negociação direta com confirmação dos dois jogadores. A tela pode ser fechada e retomada sem perder a oferta.
+- `/troca` e `/comercio` abrem uma negociação direta com confirmação dos dois jogadores. Java usa inventário; Bedrock recebe formulário nativo e comandos seguros. A tela pode ser fechada e retomada sem perder a oferta.
 - `/mapa` entrega um mapa nativo Java/Bedrock; o squaremap oferece uma visão ao vivo no navegador sem mod de cliente.
 - A mochila pessoal é fabricável, vinculada ao dono e guarda 27 espaços sem aceitar mochilas aninhadas.
-- A clareira possui NPCs interativos em armaduras/poses, textos flutuantes, caminhos cardeais, quatro portais e uma fronteira física alinhada à proteção circular.
-- `Nemeton+` adiciona drops raros de mineração, recompensas de boss, armas/armadura craftáveis e guia de mods opcionais em `/mods`.
+- A clareira possui NPCs interativos em armaduras/poses, formulários Bedrock, textos flutuantes maiores, caminhos cardeais, quatro portais e uma fronteira física alinhada à proteção circular.
+- `Nemeton+` adiciona drops raros de mineração, recompensas de boss, armas/armadura craftáveis, trims/brilho vanilla-safe e guia de mods opcionais em `/mods`.
 - `Vanilla+ Structures` 0.1.3 adiciona sete estruturas somente em chunks novos, sem blocos ou itens customizados.
 
 ## Desenvolvimento
@@ -57,7 +57,7 @@ Convide o bot com os escopos `bot` e `applications.commands` e conceda apenas `M
 2. Configure o cargo `Aprovado`, o vínculo obrigatório e os canais/voz do DiscordSRV.
 3. Teste `/troca` entre Java e Bedrock, incluindo fechar a interface, usar `/troca abrir`, confirmar e cancelar.
 4. Teste `/mapa`, a receita da `/mochila`, `/mods`, `/mods itens` e interação com os NPCs tanto no Java quanto no Bedrock.
-5. Teste `/troca` Java↔Java pela interface e Java↔Bedrock pelo modo seguro de chat: `/troca oferecer`, `/troca ver`, `/troca aceitar`.
+5. Teste `/troca` Java↔Java pela interface e Java↔Bedrock pelo formulário Bedrock; mantenha os comandos seguros como fallback: `/troca oferecer`, `/troca ver`, `/troca aceitar`.
 6. Como OP, use `/mods give` para validar a vitrine Nemeton+.
 7. Comece com pregeneration pequena: `chunky radius 1500`, valide TPS/espaço, depois aumente para `3000` e só então considere `5000`.
 8. Agende `scripts/backup.sh` a cada seis horas e restaure um snapshot em diretório limpo antes do alpha.

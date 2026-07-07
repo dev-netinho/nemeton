@@ -1,5 +1,6 @@
 package dev.nemeton.service;
 
+import dev.nemeton.integration.BedrockForms;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -393,6 +394,22 @@ public final class TradeService implements Listener, TabExecutor {
             return;
         }
         Player other = Bukkit.getPlayer(session.other(player.getUniqueId()));
+        if (session.bedrockSafe && BedrockForms.sendSimple(plugin, player,
+                "Troca com " + (other == null ? "jogador" : other.getName()),
+                "Sua oferta: " + describe(session.offerOf(player.getUniqueId()))
+                        + "\n\nOferta do outro: " + describe(session.offerOf(session.other(player.getUniqueId())))
+                        + "\n\nAceites: você " + plainYesNo(session.accepted(player.getUniqueId()))
+                        + ", outro " + plainYesNo(session.accepted(session.other(player.getUniqueId())))
+                        + "\n\nUse o item na mão para oferecer pelo botão abaixo.",
+                index -> handleBedrockTradeButton(player, index),
+                "Oferecer item da mão",
+                "Aceitar troca",
+                "Limpar minha oferta",
+                "Cancelar troca",
+                "Fechar")) {
+            player.sendMessage("§7Interface Bedrock de troca aberta.");
+            return;
+        }
         player.sendMessage("§8§m                                                ");
         player.sendMessage("§6Troca com " + (other == null ? "jogador" : other.getName()) + (session.bedrockSafe ? " §7(modo Bedrock seguro)" : ""));
         player.sendMessage("§eSua oferta: §f" + describe(session.offerOf(player.getUniqueId())));
@@ -400,6 +417,24 @@ public final class TradeService implements Listener, TabExecutor {
         player.sendMessage("§7Aceites: você " + yesNo(session.accepted(player.getUniqueId())) + "§7, outro " + yesNo(session.accepted(session.other(player.getUniqueId()))));
         if (session.bedrockSafe) player.sendMessage("§7Comandos: §f/troca oferecer [qtd]§7, §f/troca limpar§7, §f/troca aceitar§7, §f/troca cancelar§7.");
         player.sendMessage("§8§m                                                ");
+    }
+
+    private void handleBedrockTradeButton(Player player, int index) {
+        try {
+            switch (index) {
+                case 0 -> offerHeld(player, new String[]{"oferecer", "all"});
+                case 1 -> {
+                    TradeSession session = sessionsByPlayer.get(player.getUniqueId());
+                    if (session == null) throw new IllegalArgumentException("Você não tem troca aberta.");
+                    acceptSafeOffer(player, session);
+                }
+                case 2 -> clearOffer(player);
+                case 3 -> cancel(player);
+                default -> { }
+            }
+        } catch (IllegalArgumentException exception) {
+            player.sendMessage("§c" + exception.getMessage());
+        }
     }
 
     private int firstEmpty(ItemStack[] items) {
@@ -424,6 +459,10 @@ public final class TradeService implements Listener, TabExecutor {
         return value ? "§asim" : "§cnão";
     }
 
+    private String plainYesNo(boolean value) {
+        return value ? "sim" : "não";
+    }
+
     private void broadcastSafe(TradeSession session, String message) {
         Player left = Bukkit.getPlayer(session.left);
         Player right = Bukkit.getPlayer(session.right);
@@ -432,15 +471,7 @@ public final class TradeService implements Listener, TabExecutor {
     }
 
     private boolean isBedrock(Player player) {
-        if (player.getName().startsWith(".")) return true;
-        try {
-            Class<?> apiClass = Class.forName("org.geysermc.floodgate.api.FloodgateApi");
-            Object api = apiClass.getMethod("getInstance").invoke(null);
-            Object result = apiClass.getMethod("isFloodgatePlayer", UUID.class).invoke(api, player.getUniqueId());
-            return Boolean.TRUE.equals(result);
-        } catch (ReflectiveOperationException | LinkageError ignored) {
-            return false;
-        }
+        return BedrockForms.isBedrock(player);
     }
 
     private ItemStack item(Material material, String name, String... lore) {

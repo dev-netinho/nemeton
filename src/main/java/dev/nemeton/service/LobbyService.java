@@ -1,6 +1,7 @@
 package dev.nemeton.service;
 
 import dev.nemeton.config.Settings;
+import dev.nemeton.integration.BedrockForms;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.*;
@@ -24,6 +25,10 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
+import org.bukkit.inventory.meta.ArmorMeta;
+import org.bukkit.inventory.meta.trim.ArmorTrim;
+import org.bukkit.inventory.meta.trim.TrimMaterial;
+import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
@@ -109,6 +114,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         String role = entity.getPersistentDataContainer().get(entityKey, PersistentDataType.STRING);
         if (role == null || !role.startsWith("npc:")) return false;
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 0.8f, 1.1f);
+        if (sendNpcForm(player, role.substring(4))) return true;
         switch (role.substring(4)) {
             case "guide" -> {
                 npcCard(player, "§a§lEira, Guia do Nemeton",
@@ -149,6 +155,70 @@ public final class LobbyService implements Listener, CommandExecutor {
             default -> { }
         }
         return true;
+    }
+
+    private boolean sendNpcForm(Player player, String role) {
+        String title;
+        String content;
+        String[] buttons;
+        switch (role) {
+            case "guide" -> {
+                title = "Eira • Guia";
+                content = "Zona segura do Nemeton.\n\n/guia: livro inicial\n/kit: ferramentas de começo\n/mapa: orientação Java/Bedrock";
+                buttons = new String[]{"Receber /guia", "Pegar /kit", "Abrir /mapa", "Fechar"};
+            }
+            case "clans" -> {
+                title = "Borin • Clãs e Raids";
+                content = "Crie ou entre em uma equipe.\n\n/clan criar <nome> <tag>\n/clan convidar <jogador>\n/clan claim protege território conectado.\n/raid status mostra conflitos futuros.";
+                buttons = new String[]{"Ajuda de clã", "Status de raid", "Fechar"};
+            }
+            case "trade" -> {
+                title = "Mara • Trocas";
+                content = "Negocie sem banco virtual.\n\nJava usa interface de inventário.\nBedrock usa formulários e comandos seguros para não buggar a conexão.";
+                buttons = new String[]{"Como trocar", "Ver troca atual", "Cancelar troca atual", "Fechar"};
+            }
+            case "wilds" -> {
+                title = "Tarin • Exploração";
+                content = "Depois dos portões começa o survival.\n\n/santuario marcar protege sua base.\n/lapide aponta para sua morte.\n/mochila abre sua bolsa pessoal.";
+                buttons = new String[]{"Ajuda santuário", "Abrir mochila", "Ver lápide", "Fechar"};
+            }
+            case "mods" -> {
+                title = "Nara • Nemeton+";
+                content = "Conteúdo Vanilla+ autoral.\n\nMinimap no Lunar: Right Shift > Mods > Minimap.\nBedrock usa /mapa e forms nativos.\nItens especiais vêm de mineração, Wither e Dragão.";
+                buttons = new String[]{"Abrir /mods", "Ver itens Nemeton+", "Fechar"};
+            }
+            default -> { return false; }
+        }
+        return BedrockForms.sendSimple(plugin, player, title, content, index -> handleNpcButton(player, role, index), buttons);
+    }
+
+    private void handleNpcButton(Player player, String role, int index) {
+        switch (role) {
+            case "guide" -> {
+                if (index == 0) player.performCommand("guia");
+                else if (index == 1) player.performCommand("kit");
+                else if (index == 2) player.performCommand("mapa");
+            }
+            case "clans" -> {
+                if (index == 0) player.performCommand("clan ajuda");
+                else if (index == 1) player.performCommand("raid status");
+            }
+            case "trade" -> {
+                if (index == 0) player.performCommand("troca ajuda");
+                else if (index == 1) player.performCommand("troca ver");
+                else if (index == 2) player.performCommand("troca cancelar");
+            }
+            case "wilds" -> {
+                if (index == 0) player.performCommand("santuario ajuda");
+                else if (index == 1) player.performCommand("mochila");
+                else if (index == 2) player.performCommand("lapide");
+            }
+            case "mods" -> {
+                if (index == 0) player.performCommand("mods");
+                else if (index == 1) player.performCommand("mods itens");
+            }
+            default -> { }
+        }
     }
 
     private void npcCard(Player player, String title, String... lines) {
@@ -333,31 +403,20 @@ public final class LobbyService implements Listener, CommandExecutor {
 
         clearColumn(world, changes, cx, cz, ground + 1, world.getMaxHeight() - 2);
 
-        Material[] pyramid = {Material.IRON_BLOCK, Material.IRON_BLOCK, Material.GOLD_BLOCK, Material.EMERALD_BLOCK};
-        for (int layer = 0; layer < 4; layer++) {
-            int half = 4 - layer;
-            int y = ground - 3 + layer;
-            Material material = pyramid[layer];
-            for (int dx = -half; dx <= half; dx++) {
-                for (int dz = -half; dz <= half; dz++) {
-                    int x = cx + dx, z = cz + dz;
-                    changes.add(() -> set(world, x, y, z, material));
-                }
-            }
-        }
         clearColumn(world, changes, cx, cz, ground + 2, world.getMaxHeight() - 2);
 
-        for (int dx = -3; dx <= 3; dx++) {
-            for (int dz = -3; dz <= 3; dz++) {
+        for (int dx = -8; dx <= 8; dx++) {
+            for (int dz = -8; dz <= 8; dz++) {
                 double distance = Math.hypot(dx, dz);
-                if (distance < 1.85 || distance > 3.1) continue;
-                if (Math.abs(dx) == 3 && Math.abs(dz) == 3) continue;
+                if (distance < 3.25 || distance > 7.85) continue;
+                if (Math.abs(dx) == 8 && Math.abs(dz) == 8) continue;
                 int x = cx + dx, z = cz + dz;
                 int localGround = terrainSurfaceY(world, x, z);
-                int top = ground + 14 + Math.floorMod(dx * 7 + dz * 11, 3);
+                int top = ground + 46 + Math.floorMod(dx * 7 + dz * 11, 7);
                 for (int y = localGround + 1; y <= top; y++) {
                     int fy = y;
-                    Material material = Math.floorMod(dx + dz + y, 5) == 0 ? Material.STRIPPED_DARK_OAK_LOG : Material.DARK_OAK_LOG;
+                    Material material = Math.floorMod(dx + dz + y, 7) == 0 ? Material.STRIPPED_DARK_OAK_LOG
+                            : distance > 6.9 && Math.floorMod(y + dx, 5) == 0 ? Material.SPRUCE_LOG : Material.DARK_OAK_LOG;
                     changes.add(log(world, x, fy, z, material, Axis.Y));
                 }
             }
@@ -368,44 +427,71 @@ public final class LobbyService implements Listener, CommandExecutor {
         };
         for (int[] direction : directions) {
             Axis axis = Math.abs(direction[0]) >= Math.abs(direction[1]) ? Axis.X : Axis.Z;
-            int length = direction[0] == 0 || direction[1] == 0 ? 10 : 7;
-            for (int step = 4; step <= length; step++) {
+            int length = direction[0] == 0 || direction[1] == 0 ? 33 : 26;
+            for (int step = 6; step <= length; step++) {
                 int x = cx + direction[0] * step;
                 int z = cz + direction[1] * step;
                 int y = terrainSurfaceY(world, x, z);
                 int fx = x, fy = y, fz = z;
                 Material groundMaterial = step % 3 == 0 ? Material.ROOTED_DIRT : Material.MOSS_BLOCK;
                 changes.add(() -> set(world, fx, fy, fz, groundMaterial));
-                if (step % 3 == 0) changes.add(log(world, fx, fy + 1, fz, Material.DARK_OAK_LOG, axis));
+                if (step <= length - 2) changes.add(log(world, fx, fy + 1, fz, Material.DARK_OAK_LOG, axis));
+                if (step % 4 == 0 && step < length - 3) changes.add(log(world, fx, fy + 2, fz, Material.SPRUCE_LOG, axis));
+                if (step % 5 == 0) planLeafCluster(changes, world, fx, fy + 2, fz, 2);
             }
         }
 
         for (int[] direction : directions) {
             Axis axis = Math.abs(direction[0]) >= Math.abs(direction[1]) ? Axis.X : Axis.Z;
-            int startY = ground + 10 + Math.floorMod(direction[0] * 5 + direction[1] * 3, 3);
-            int length = direction[0] == 0 || direction[1] == 0 ? 8 : 6;
+            int startY = ground + 26 + Math.floorMod(direction[0] * 5 + direction[1] * 3, 7);
+            int length = direction[0] == 0 || direction[1] == 0 ? 32 : 24;
             for (int step = 0; step <= length; step++) {
-                int x = cx + direction[0] * (3 + step);
-                int z = cz + direction[1] * (3 + step);
+                int x = cx + direction[0] * (7 + step);
+                int z = cz + direction[1] * (7 + step);
                 int y = startY + step / 3;
                 changes.add(log(world, x, y, z, Material.DARK_OAK_LOG, axis));
-                if (step >= length - 1) planLeafCluster(changes, world, x, y, z, 2);
+                if (step % 3 == 0 && step > 1) changes.add(log(world, x, y - 1, z, Material.STRIPPED_DARK_OAK_LOG, axis));
+                if (step >= length - 5 || step % 6 == 0) planLeafCluster(changes, world, x, y, z, step >= length - 5 ? 5 : 3);
+                if (step == length / 2 || step == length - 6) {
+                    int crownTop = y + 9 + Math.floorMod(x + z, 4);
+                    for (int py = y + 1; py <= crownTop; py++) {
+                        int fy = py;
+                        changes.add(log(world, x, fy, z, Material.DARK_OAK_LOG, Axis.Y));
+                    }
+                    planLeafCluster(changes, world, x, crownTop, z, 5);
+                }
             }
         }
 
         Material[] leafPalette = {Material.OAK_LEAVES, Material.DARK_OAK_LEAVES, Material.AZALEA_LEAVES, Material.FLOWERING_AZALEA_LEAVES};
-        for (int y = ground + 11; y <= ground + 22; y++) {
-            double vertical = Math.abs((ground + 16.0) - y);
-            double radius = 9.5 - vertical * 0.75;
+        for (int y = ground + 36; y <= ground + 72; y++) {
+            double vertical = Math.abs((ground + 54.0) - y);
+            double radius = 31.5 - vertical * 0.78;
             for (int dx = (int) -Math.ceil(radius); dx <= Math.ceil(radius); dx++) {
                 for (int dz = (int) -Math.ceil(radius); dz <= Math.ceil(radius); dz++) {
                     if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) continue;
-                    double noise = Math.floorMod((cx + dx) * 31 + (cz + dz) * 17 + y * 13, 11) * 0.08;
+                    double noise = Math.floorMod((cx + dx) * 31 + (cz + dz) * 17 + y * 13, 11) * 0.14;
                     if (Math.hypot(dx, dz) > radius + noise) continue;
-                    if (Math.floorMod(dx * 13 + dz * 19 + y * 7, 23) == 0) continue;
+                    if (Math.floorMod(dx * 13 + dz * 19 + y * 7, 31) == 0) continue;
                     Material leaf = leafPalette[Math.floorMod(dx * 5 + dz * 3 + y, leafPalette.length)];
                     changes.add(leaves(world, cx + dx, y, cz + dz, leaf));
                 }
+            }
+        }
+        for (int degree = 0; degree < 360; degree += 24) {
+            double angle = Math.toRadians(degree);
+            int glowRadius = degree % 48 == 0 ? 17 : 25;
+            int x = cx + (int) Math.round(Math.cos(angle) * glowRadius);
+            int z = cz + (int) Math.round(Math.sin(angle) * glowRadius);
+            int y = ground + 38 + Math.floorMod(degree, 17);
+            Material light = degree % 72 == 0 ? Material.SEA_LANTERN : Material.SHROOMLIGHT;
+            changes.add(() -> set(world, x, y, z, light));
+            if (degree % 48 == 0) {
+                int hx = x, hy = y - 2, hz = z;
+                changes.add(() -> {
+                    Block block = world.getBlockAt(hx, hy, hz);
+                    if (block.getType().isAir()) block.setType(Material.HANGING_ROOTS, false);
+                });
             }
         }
     }
@@ -427,6 +513,9 @@ public final class LobbyService implements Listener, CommandExecutor {
         }
         changes.add(() -> set(world, cx, beaconY, cz, Material.BEACON));
         clearColumn(world, changes, cx, cz, beaconY + 1, world.getMaxHeight() - 2);
+        changes.add(() -> set(world, cx, beaconY + 2, cz, Material.PURPLE_STAINED_GLASS));
+        changes.add(() -> set(world, cx, beaconY + 3, cz, Material.MAGENTA_STAINED_GLASS));
+        changes.add(() -> set(world, cx, beaconY + 4, cz, Material.BLUE_STAINED_GLASS));
     }
 
     private void planLeafCluster(List<Runnable> changes, World world, int cx, int cy, int cz, int radius) {
@@ -624,17 +713,17 @@ public final class LobbyService implements Listener, CommandExecutor {
                 Component.text("Nara • Nemeton+", NamedTextColor.LIGHT_PURPLE));
 
         spawnLabel(world, 0, Math.max(17, visualRadius() / 2), 4.2, Component.text("NEMETON\n", NamedTextColor.GOLD)
-                .append(Component.text("ZONA SEGURA • sem PvP • sem grife", NamedTextColor.GREEN)), "label:welcome");
+                .append(Component.text("ZONA SEGURA • sem PvP • sem grife", NamedTextColor.GREEN)), "label:welcome", 1.35f);
         spawnLabel(world, -10, 14, 3.4, Component.text("/guia  /kit  /mapa\n", NamedTextColor.GREEN)
-                .append(Component.text("primeiros passos", NamedTextColor.GRAY)), "label:cmd:guide");
+                .append(Component.text("primeiros passos", NamedTextColor.GRAY)), "label:cmd:guide", 1.18f);
         spawnLabel(world, 14, 8, 3.4, Component.text("/troca  /comercio\n", NamedTextColor.GOLD)
-                .append(Component.text("negociação segura", NamedTextColor.GRAY)), "label:cmd:trade");
+                .append(Component.text("negociação segura", NamedTextColor.GRAY)), "label:cmd:trade", 1.18f);
         spawnLabel(world, -14, -8, 3.4, Component.text("/clan  /raid\n", NamedTextColor.RED)
-                .append(Component.text("grupo, claims e guerras", NamedTextColor.GRAY)), "label:cmd:clans");
+                .append(Component.text("grupo, claims e guerras", NamedTextColor.GRAY)), "label:cmd:clans", 1.18f);
         spawnLabel(world, 8, -14, 3.4, Component.text("/santuario  /lapide  /mochila\n", NamedTextColor.AQUA)
-                .append(Component.text("base pessoal e exploração", NamedTextColor.GRAY)), "label:cmd:wilds");
+                .append(Component.text("base pessoal e exploração", NamedTextColor.GRAY)), "label:cmd:wilds", 1.18f);
         spawnLabel(world, 18, -18, 3.4, Component.text("/mods  /mods itens\n", NamedTextColor.LIGHT_PURPLE)
-                .append(Component.text("Vanilla+ autoral e minimap", NamedTextColor.GRAY)), "label:cmd:mods");
+                .append(Component.text("Vanilla+ autoral e minimap", NamedTextColor.GRAY)), "label:cmd:mods", 1.18f);
         int exit = gateOffset() - 2;
         spawnExitLabel(world, 0, -exit, "NORTE");
         spawnExitLabel(world, 0, exit, "SUL");
@@ -712,18 +801,18 @@ public final class LobbyService implements Listener, CommandExecutor {
 
     private void equipNpc(EntityEquipment equipment, String role, DyeColor dyeColor, Material heldItem) {
         if (role.equals("clans")) {
-            equipment.setHelmet(new ItemStack(Material.DIAMOND_HELMET));
-            equipment.setChestplate(new ItemStack(Material.DIAMOND_CHESTPLATE));
-            equipment.setLeggings(new ItemStack(Material.NETHERITE_LEGGINGS));
-            equipment.setBoots(new ItemStack(Material.NETHERITE_BOOTS));
+            equipment.setHelmet(trimmed(Material.DIAMOND_HELMET, TrimMaterial.REDSTONE, TrimPattern.SENTRY, true));
+            equipment.setChestplate(trimmed(Material.DIAMOND_CHESTPLATE, TrimMaterial.NETHERITE, TrimPattern.WARD, true));
+            equipment.setLeggings(trimmed(Material.NETHERITE_LEGGINGS, TrimMaterial.DIAMOND, TrimPattern.SILENCE, true));
+            equipment.setBoots(trimmed(Material.NETHERITE_BOOTS, TrimMaterial.REDSTONE, TrimPattern.DUNE, true));
             equipment.setItemInMainHand(new ItemStack(Material.NETHERITE_SWORD));
             equipment.setItemInOffHand(new ItemStack(Material.SHIELD));
             return;
         }
         if (role.equals("mods")) {
             equipment.setHelmet(new ItemStack(Material.AMETHYST_SHARD));
-            equipment.setChestplate(leather(Material.LEATHER_CHESTPLATE, dyeColor.getColor()));
-            equipment.setLeggings(new ItemStack(Material.NETHERITE_LEGGINGS));
+            equipment.setChestplate(trimmed(Material.DIAMOND_CHESTPLATE, TrimMaterial.AMETHYST, TrimPattern.SPIRE, true));
+            equipment.setLeggings(trimmed(Material.NETHERITE_LEGGINGS, TrimMaterial.AMETHYST, TrimPattern.EYE, true));
             equipment.setBoots(leather(Material.LEATHER_BOOTS, dyeColor.getColor()));
             equipment.setItemInMainHand(new ItemStack(Material.NETHERITE_SWORD));
             equipment.setItemInOffHand(new ItemStack(Material.AMETHYST_SHARD));
@@ -744,6 +833,16 @@ public final class LobbyService implements Listener, CommandExecutor {
         return item;
     }
 
+    private ItemStack trimmed(Material material, TrimMaterial trimMaterial, TrimPattern pattern, boolean glint) {
+        ItemStack item = new ItemStack(material);
+        if (item.getItemMeta() instanceof ArmorMeta meta) {
+            meta.setTrim(new ArmorTrim(trimMaterial, pattern));
+            meta.setEnchantmentGlintOverride(glint);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private void spawnLabel(World world, int dx, int dz, double height, Component text, String id) {
         spawnLabel(world, dx, dz, height, text, id, 1.0f);
     }
@@ -757,7 +856,7 @@ public final class LobbyService implements Listener, CommandExecutor {
             display.setBillboard(Display.Billboard.CENTER);
             display.setSeeThrough(false);
             display.setShadowed(true);
-            display.setViewRange(0.7f);
+            display.setViewRange(1.7f);
             display.setTransformation(new Transformation(
                     new Vector3f(0, 0, 0),
                     new AxisAngle4f(),
@@ -771,7 +870,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         spawnLabel(world, dx, dz, 4.2,
                 Component.text("SAÍDA " + direction + "\n", NamedTextColor.YELLOW)
                         .append(Component.text("além do portal: terras selvagens", NamedTextColor.GRAY)),
-                "label:exit:" + direction.toLowerCase(Locale.ROOT), 1.9f);
+                "label:exit:" + direction.toLowerCase(Locale.ROOT), 2.6f);
     }
 
     private void faceNearbyPlayers() {
@@ -881,7 +980,7 @@ public final class LobbyService implements Listener, CommandExecutor {
             if (block.getType() != Material.BEACON) continue;
             for (int clearY = y + 1; clearY < world.getMaxHeight(); clearY++) {
                 Block above = world.getBlockAt(cx, clearY, cz);
-                if (!above.getType().isAir()) above.setType(Material.AIR, false);
+                if (!above.getType().isAir() && !isBeaconBeamTransparent(above.getType())) above.setType(Material.AIR, false);
             }
             if (block.getState() instanceof Beacon beacon) {
                 beacon.setPrimaryEffect(PotionEffectType.SPEED);
@@ -890,6 +989,10 @@ public final class LobbyService implements Listener, CommandExecutor {
             }
             return;
         }
+    }
+
+    private boolean isBeaconBeamTransparent(Material material) {
+        return material == Material.GLASS || material.name().endsWith("_STAINED_GLASS");
     }
 
     private boolean isGround(Material material) {

@@ -6,7 +6,7 @@
 - Testar Java em `100.123.99.34:25565` dentro da Tailnet e Bedrock público em `documents-voicing.gl.at.ply.gg:59460`.
 - Confirmar que o `playit` está rodando: `ps -p "$(cat runtime/playit/state/playit.pid)" -o pid,etime,cmd`.
 - Comandos da experiência alpha: `/guia`, `/kit`, `/nemeton`, `/spawn`, `/mapa`, `/mochila`, `/lapide`, `/troca`, `/mods`, `/mods itens`, `/santuario ajuda` e `/clan ajuda`.
-- Em troca com Bedrock, evitar a interface Java: usar `/troca oferecer [qtd]`, `/troca ver`, `/troca aceitar` e `/troca cancelar`.
+- Em troca com Bedrock, evitar a interface Java: o plugin abre formulário nativo quando possível. Se o jogador fechar ou o Floodgate não responder, usar `/troca oferecer [qtd]`, `/troca ver`, `/troca aceitar` e `/troca cancelar`.
 - Rodar `spark healthreport` quando MSPT subir; não instalar plugins de limpeza automática às cegas.
 - Conferir espaço antes de expandir o world border ou pregenerar chunks.
 - Nunca atualizar Paper, Geyser ou WorldGuard diretamente em produção. Clonar os volumes e testar a matriz primeiro.
@@ -14,7 +14,7 @@
 - Se o MSPT p95 passar de 45 ms, reduzir primeiro `SIMULATION_DISTANCE`, depois `VIEW_DISTANCE`; aumentar heap só se houver GC/memória, não como reflexo automático.
 - Manter `war.raids-enabled: false` em produção até duas simulações completas de raid passarem em ambiente de teste.
 
-Para reconstruir a sinalização da clareira após restaurar o mundo, use `nemetonadmin construir` no console. O comando aplica os blocos em lotes e pode ser repetido. `nemetonadmin npcs` recria apenas moradores e textos flutuantes.
+Para reconstruir a sinalização da clareira após restaurar o mundo, use `nemetonadmin construir` no console. O comando aplica os blocos em lotes e pode ser repetido; a árvore monumental atual passa de meio milhão de alterações, então espere cerca de um a dois minutos e monitore TPS. `nemetonadmin npcs` recria apenas moradores e textos flutuantes.
 
 Na alpha atual, o Nemeton fica no mundo `world`, entrada em `16064.5 78.0 -32046.5`, centro protegido em `16064.5 -32064.5` e raio `42`. Antes de mover de novo, use `nemetonadmin avaliar <x> <z> [raio]` para medir água, relevo e biomas.
 

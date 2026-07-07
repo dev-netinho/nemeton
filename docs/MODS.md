@@ -7,6 +7,8 @@ Por isso, mods Forge/Fabric que exigem servidor modded não entram diretamente n
 
 - `NemetonCore`: plugin Java próprio com clãs, claims, trocas, mochila, lápide, mapa e Nemeton+.
 - Datapacks Vanilla+: estruturas em chunks novos sem blocos customizados.
+- Visual vanilla-safe: armaduras com trims, brilho, raridade e `customModelData` já marcado para o pack futuro.
+- Forms Bedrock via Floodgate/Cumulus para NPCs, `/mods` e trocas, com chat como fallback.
 - Resource packs próprios: um pack Java e um pack Bedrock equivalente.
 - Geyser custom content: mapeia itens customizados para Bedrock.
 
@@ -17,7 +19,7 @@ Não existe um único arquivo de textura que seja nativo para Java e Bedrock ao 
 - Essência do Nemeton: drop raro ao minerar minérios.
 - Lâmina do Nemeton: essência + diamante + graveto.
 - Machado do Guardião: duas essências + graveto.
-- Peitoral Sentinela: peitoral de diamante cercado por essências.
+- Peitoral Sentinela: peitoral de diamante cercado por essências, com trim e brilho nativos.
 - Wither e Ender Dragon deixam troféus especiais para eventos comunitários.
 
 Comandos:
@@ -25,6 +27,8 @@ Comandos:
 - `/mods`
 - `/mods itens`
 - `/mods give` para administração testar a vitrine.
+
+No Bedrock, `/mods` e `/mods itens` abrem uma tela nativa. No Java, continuam como chat clicável/legível.
 
 ## Java
 
@@ -42,6 +46,7 @@ Jogadores Java sem Lunar podem usar mods client-side de minimap, desde que não 
 Bedrock não carrega mods Java. Para orientação, o servidor oferece:
 
 - `/mapa`
+- formulários nativos em NPCs, `/mods` e `/troca`
 - mapa web via squaremap
 - mapa nativo preenchido
 
