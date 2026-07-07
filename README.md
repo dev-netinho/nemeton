@@ -15,7 +15,8 @@ SMP comunitário Java + Bedrock: um mundo persistente, um centro seguro no próp
 - `/troca` e `/comercio` abrem uma negociação direta com confirmação dos dois jogadores. Java usa inventário; Bedrock recebe formulário nativo e comandos seguros. A tela pode ser fechada e retomada sem perder a oferta.
 - `/mapa` entrega um mapa nativo Java/Bedrock; o squaremap oferece uma visão ao vivo no navegador sem mod de cliente.
 - A mochila pessoal é fabricável, vinculada ao dono e guarda 27 espaços sem aceitar mochilas aninhadas.
-- A clareira possui NPCs interativos em armaduras/poses, formulários Bedrock, textos flutuantes maiores, caminhos cardeais, quatro portais e uma fronteira física alinhada à proteção circular.
+- A clareira possui NPCs de jogador gerenciados pelo Citizens, com skins, equipamento, olhar responsivo e formulários Bedrock, além de textos flutuantes maiores, caminhos cardeais, quatro portais e uma fronteira física alinhada à proteção circular.
+- O Nemeton bloqueia criaturas e perigos em toda a coluna da região, sela cavernas sob o lobby e combina WorldGuard com listeners próprios contra explosões externas, pistões, fogo e fluidos.
 - `Nemeton+` adiciona drops raros de mineração, recompensas de boss, armas/armadura craftáveis, trims/brilho vanilla-safe e guia de mods opcionais em `/mods`.
 - `/menu`/`/painel` abre uma interface principal. No Bedrock, clãs, santuário, raids, guia, Nemeton+ e trocas usam Forms nativas com botões/campos.
 - `resourcepacks/` contém o Nemeton + Faithful 32x: textura completa equivalente para Java/Bedrock, overlay autoral dos itens Nemeton e mapeamento Geyser. Créditos e licença do Faithful seguem dentro dos dois packs.

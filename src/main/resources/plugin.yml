@@ -4,7 +4,7 @@ main: dev.nemeton.NemetonPlugin
 api-version: '1.21.11'
 authors: [Nemeton]
 description: Clans, sanctuaries, claims and reversible raids for a community SMP.
-depend: [WorldGuard]
+depend: [WorldGuard, Citizens]
 softdepend: [CoreProtect, DiscordSRV, floodgate, squaremap]
 commands:
   clan:

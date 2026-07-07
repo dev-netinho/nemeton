@@ -9,6 +9,7 @@ import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
+import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.*;
 
 import java.time.Instant;
@@ -51,13 +52,24 @@ public final class ProtectionListener implements Listener {
             }
         }));
     }
-    @EventHandler public void onFluid(BlockFromToEvent event) { if (state.activeRaidAt(ChunkPos.of(event.getToBlock().getChunk())).isPresent()) event.setCancelled(true); }
-    @EventHandler public void onSpread(BlockSpreadEvent event) { if (state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
-    @EventHandler public void onPiston(BlockPistonExtendEvent event) { if (state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
-    @EventHandler public void onPiston(BlockPistonRetractEvent event) { if (state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
+    @EventHandler public void onFluid(BlockFromToEvent event) { if (claims.isHub(event.getToBlock().getLocation()) || state.activeRaidAt(ChunkPos.of(event.getToBlock().getChunk())).isPresent()) event.setCancelled(true); }
+    @EventHandler public void onSpread(BlockSpreadEvent event) { if (claims.isHub(event.getBlock().getLocation()) || state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
+    @EventHandler public void onBurn(BlockBurnEvent event) { if (claims.isHub(event.getBlock().getLocation())) event.setCancelled(true); }
+    @EventHandler public void onIgnite(BlockIgniteEvent event) { if (claims.isHub(event.getBlock().getLocation())) event.setCancelled(true); }
+    @EventHandler public void onPiston(BlockPistonExtendEvent event) {
+        if (claims.isHub(event.getBlock().getLocation()) || event.getBlocks().stream().anyMatch(block ->
+                claims.isHub(block.getLocation()) || claims.isHub(block.getRelative(event.getDirection()).getLocation()))
+                || state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true);
+    }
+    @EventHandler public void onPiston(BlockPistonRetractEvent event) {
+        if (claims.isHub(event.getBlock().getLocation()) || event.getBlocks().stream().anyMatch(block ->
+                claims.isHub(block.getLocation()) || claims.isHub(block.getRelative(event.getDirection()).getLocation()))
+                || state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true);
+    }
     @EventHandler public void onBucket(PlayerBucketEmptyEvent event) { if (claims.isHub(event.getBlock().getLocation()) || state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onExplosion(EntityExplodeEvent event) {
+        if (claims.isHub(event.getLocation())) { event.setCancelled(true); return; }
         event.blockList().removeIf(block -> {
             if (claims.isHub(block.getLocation())) return true;
             ChunkPos chunk = ChunkPos.of(block.getChunk()); Optional<Raid> raid = state.activeRaidAt(chunk);
@@ -66,8 +78,22 @@ public final class ProtectionListener implements Listener {
         }); event.setYield(0);
     }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBlockExplosion(BlockExplodeEvent event) {
+        if (claims.isHub(event.getBlock().getLocation())) { event.setCancelled(true); return; }
+        event.blockList().removeIf(block -> claims.isHub(block.getLocation()));
+        event.setYield(0);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEntityChangesBlock(EntityChangeBlockEvent event) {
+        if (claims.isHub(event.getBlock().getLocation())) event.setCancelled(true);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onHangingBreak(HangingBreakEvent event) {
+        if (claims.isHub(event.getEntity().getLocation())) event.setCancelled(true);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onDamage(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Player player && claims.isHub(player.getLocation())) event.setCancelled(true);
+        if (claims.isHub(event.getEntity().getLocation())) event.setCancelled(true);
     }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageByEntityEvent event) {

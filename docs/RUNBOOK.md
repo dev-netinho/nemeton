@@ -14,7 +14,9 @@
 - Se o MSPT p95 passar de 45 ms, reduzir primeiro `SIMULATION_DISTANCE`, depois `VIEW_DISTANCE`; aumentar heap só se houver GC/memória, não como reflexo automático.
 - Manter `war.raids-enabled: false` em produção até duas simulações completas de raid passarem em ambiente de teste.
 
-Para reconstruir a sinalização da clareira após restaurar o mundo, use `nemetonadmin construir` no console. O comando aplica os blocos em lotes e pode ser repetido; a árvore monumental atual passa de meio milhão de alterações, então espere cerca de um a dois minutos e monitore TPS. `nemetonadmin npcs` recria apenas moradores e textos flutuantes.
+Para reconstruir a sinalização da clareira após restaurar o mundo, use `nemetonadmin construir` no console. O comando aplica os blocos em lotes e pode ser repetido; a árvore monumental atual passa de meio milhão de alterações, então espere cerca de um a dois minutos e monitore TPS. `nemetonadmin selar` preenche somente cavidades e fluidos sob toda a região, preservando blocos sólidos existentes. `nemetonadmin npcs` sincroniza os NPCs de jogador do Citizens e os textos flutuantes.
+
+Citizens `2.0.43-b4211` é dependência obrigatória e fixada por SHA-256 em `scripts/fetch-content.sh`. Atualize apenas depois de testar Java, Bedrock, skins, clique, proteção e persistência numa cópia.
 
 Na alpha atual, o Nemeton fica no mundo `world`, entrada em `16064.5 78.0 -32046.5`, centro protegido em `16064.5 -32064.5` e raio `42`. Antes de mover de novo, use `nemetonadmin avaliar <x> <z> [raio]` para medir água, relevo e biomas.
 

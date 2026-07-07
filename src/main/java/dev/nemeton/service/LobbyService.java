@@ -4,6 +4,14 @@ import dev.nemeton.config.Settings;
 import dev.nemeton.integration.BedrockForms;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.event.NPCLeftClickEvent;
+import net.citizensnpcs.api.event.NPCRightClickEvent;
+import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.api.npc.NPCRegistry;
+import net.citizensnpcs.api.trait.trait.Equipment;
+import net.citizensnpcs.trait.LookClose;
+import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.*;
 import org.bukkit.Axis;
 import org.bukkit.block.Beacon;
@@ -16,11 +24,13 @@ import org.bukkit.command.*;
 import org.bukkit.entity.*;
 import org.bukkit.event.*;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
@@ -34,6 +44,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.EulerAngle;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
@@ -45,20 +56,24 @@ public final class LobbyService implements Listener, CommandExecutor {
     private static final int CHANGES_PER_TICK = 450;
     private static final int MAX_VISUAL_RADIUS = 44;
     private static final int MIN_VISUAL_RADIUS = 30;
+    private static final String CITIZENS_ROLE = "nemeton-role";
 
     private final JavaPlugin plugin;
     private final Settings settings;
     private final NamespacedKey entityKey;
     private final Map<UUID, Boolean> safeState = new HashMap<>();
+    private final Map<UUID, Long> npcClickCooldown = new HashMap<>();
     private boolean building;
-    private boolean spawningLobbyEntity;
 
     public LobbyService(JavaPlugin plugin, Settings settings) {
         this.plugin = plugin;
         this.settings = settings;
         this.entityKey = new NamespacedKey(plugin, "lobby_entity");
-        Bukkit.getScheduler().runTaskLater(plugin, this::spawnLobbyEntities, 40L);
-        Bukkit.getScheduler().runTaskTimer(plugin, this::faceNearbyPlayers, 40L, 20L);
+        Bukkit.getScheduler().runTaskLater(plugin, this::spawnLobbyEntities, 60L);
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            World world = world();
+            if (world != null) removeLobbyMobs(world);
+        }, 40L, 40L);
     }
 
     @EventHandler
@@ -67,10 +82,25 @@ public final class LobbyService implements Listener, CommandExecutor {
                 () -> safeState.put(event.getPlayer().getUniqueId(), isInside(event.getPlayer().getLocation())), 10L);
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
-        if (spawningLobbyEntity) return;
         if (isInside(event.getLocation())) event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onLivingEntitySpawn(EntitySpawnEvent event) {
+        if (event.getEntity() instanceof LivingEntity && !(event.getEntity() instanceof Player)
+                && isInside(event.getLocation())) event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onNpcRightClick(NPCRightClickEvent event) {
+        if (handleCitizensNpc(event.getClicker(), event.getNPC())) event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onNpcLeftClick(NPCLeftClickEvent event) {
+        if (handleCitizensNpc(event.getClicker(), event.getNPC())) event.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -113,9 +143,22 @@ public final class LobbyService implements Listener, CommandExecutor {
     private boolean handleNpcInteraction(Player player, Entity entity) {
         String role = entity.getPersistentDataContainer().get(entityKey, PersistentDataType.STRING);
         if (role == null || !role.startsWith("npc:")) return false;
+        return handleNpcRole(player, role.substring(4));
+    }
+
+    private boolean handleCitizensNpc(Player player, NPC npc) {
+        String role = npc.data().get(CITIZENS_ROLE);
+        if (role == null || !isInside(player.getLocation())) return false;
+        long now = System.currentTimeMillis();
+        if (npcClickCooldown.getOrDefault(player.getUniqueId(), 0L) > now) return true;
+        npcClickCooldown.put(player.getUniqueId(), now + 600L);
+        return handleNpcRole(player, role);
+    }
+
+    private boolean handleNpcRole(Player player, String role) {
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_YES, 0.8f, 1.1f);
-        if (sendNpcForm(player, role.substring(4))) return true;
-        switch (role.substring(4)) {
+        if (sendNpcForm(player, role)) return true;
+        switch (role) {
             case "guide" -> {
                 npcCard(player, "§a§lEira, Guia do Nemeton",
                         "§7Aqui é a zona segura.",
@@ -244,6 +287,10 @@ public final class LobbyService implements Listener, CommandExecutor {
             sender.sendMessage("§aNPCs e sinalização recriados.");
             return true;
         }
+        if (args[0].equalsIgnoreCase("selar")) {
+            sealSubsoil(sender);
+            return true;
+        }
         if (args[0].equalsIgnoreCase("avaliar")) {
             evaluateTerrain(sender, args);
             return true;
@@ -252,7 +299,7 @@ public final class LobbyService implements Listener, CommandExecutor {
             buildLobby(sender);
             return true;
         }
-        sender.sendMessage("Use /nemetonadmin construir|npcs|status|avaliar <x> <z> [raio]");
+        sender.sendMessage("Use /nemetonadmin construir|selar|npcs|status|avaliar <x> <z> [raio]");
         return true;
     }
 
@@ -276,6 +323,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         building = true;
         List<Runnable> changes = new ArrayList<>();
         removeLobbyMobs(world);
+        planSealSubsoil(world, changes);
         planCleanClearing(world, changes);
         planCoreTree(world, changes);
         planPaths(world, changes);
@@ -300,6 +348,69 @@ public final class LobbyService implements Listener, CommandExecutor {
                 sender.sendMessage("§aReforma concluída. Clareira limpa, beacon ativo, caminhos, limite seguro, portais e NPCs estão prontos.");
             }
         }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private void sealSubsoil(CommandSender sender) {
+        if (building) {
+            sender.sendMessage("§eUma manutenção do Nemeton já está em andamento.");
+            return;
+        }
+        World world = world();
+        if (world == null) {
+            sender.sendMessage("§cMundo do Nemeton não carregado.");
+            return;
+        }
+        building = true;
+        removeLobbyMobs(world);
+        List<Runnable> changes = new ArrayList<>();
+        planSealSubsoil(world, changes);
+        sender.sendMessage("§6Selagem do subsolo iniciada: " + changes.size() + " cavidades serão preenchidas.");
+        Iterator<Runnable> iterator = changes.iterator();
+        new BukkitRunnable() {
+            @Override public void run() {
+                int count = 0;
+                while (iterator.hasNext() && count++ < 1200) iterator.next().run();
+                if (iterator.hasNext()) return;
+                cancel();
+                building = false;
+                world.save();
+                sender.sendMessage("§aSubsolo do Nemeton totalmente selado e salvo.");
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private void planSealSubsoil(World world, List<Runnable> changes) {
+        int cx = blockCenterX(), cz = blockCenterZ();
+        int radius = settings.hub().radius();
+        for (int x = cx - radius; x <= cx + radius; x++) {
+            for (int z = cz - radius; z <= cz + radius; z++) {
+                if (Math.hypot(x + 0.5 - settings.hub().centerX(), z + 0.5 - settings.hub().centerZ()) > radius) continue;
+                int surface = subsoilSurfaceY(world, x, z);
+                for (int y = world.getMinHeight(); y < surface; y++) {
+                    if (world.getBlockAt(x, y, z).getType().isSolid()) continue;
+                    int fx = x, fy = y, fz = z;
+                    Material fill = y < 0 ? Material.DEEPSLATE : Material.STONE;
+                    changes.add(() -> set(world, fx, fy, fz, fill));
+                }
+            }
+        }
+    }
+
+    private int subsoilSurfaceY(World world, int x, int z) {
+        int nominal = (int) Math.floor(settings.hub().y()) - 1;
+        for (int y = Math.min(world.getMaxHeight() - 2, nominal + 10); y >= nominal - 24; y--) {
+            Material material = world.getBlockAt(x, y, z).getType();
+            if (isLobbyGroundSurface(material)) return y;
+        }
+        return nominal;
+    }
+
+    private boolean isLobbyGroundSurface(Material material) {
+        return switch (material) {
+            case GRASS_BLOCK, DIRT, COARSE_DIRT, ROOTED_DIRT, PODZOL, MYCELIUM, MOSS_BLOCK,
+                    DIRT_PATH, PACKED_MUD, MUD_BRICKS, MOSSY_COBBLESTONE -> true;
+            default -> false;
+        };
     }
 
     private void evaluateTerrain(CommandSender sender, String[] args) {
@@ -701,16 +812,22 @@ public final class LobbyService implements Listener, CommandExecutor {
                 .forEach(Entity::remove);
         removeLobbyMobs(world);
 
-        spawnNpc(world, "guide", -10, 14, DyeColor.LIME, Material.WRITTEN_BOOK,
-                Component.text("Eira • Guia", NamedTextColor.GREEN));
-        spawnNpc(world, "trade", 14, 8, DyeColor.YELLOW, Material.EMERALD,
-                Component.text("Mara • Trocas", NamedTextColor.GOLD));
-        spawnNpc(world, "clans", -14, -8, DyeColor.RED, Material.RED_BANNER,
-                Component.text("Borin • Clãs", NamedTextColor.RED));
-        spawnNpc(world, "wilds", 8, -14, DyeColor.LIGHT_BLUE, Material.COMPASS,
-                Component.text("Tarin • Exploração", NamedTextColor.AQUA));
-        spawnNpc(world, "mods", 18, -18, DyeColor.PURPLE, Material.NETHERITE_SWORD,
-                Component.text("Nara • Nemeton+", NamedTextColor.LIGHT_PURPLE));
+        NPCRegistry registry = CitizensAPI.getNPCRegistry();
+        if (registry == null) {
+            plugin.getLogger().severe("Citizens não disponibilizou o registro de NPCs.");
+            return;
+        }
+        spawnNpc(registry, world, "guide", "Eira", "§aEira • Guia", -10, 14,
+                DyeColor.LIME, Material.WRITTEN_BOOK);
+        spawnNpc(registry, world, "trade", "Mara", "§6Mara • Trocas", 14, 8,
+                DyeColor.YELLOW, Material.EMERALD);
+        spawnNpc(registry, world, "clans", "Borin", "§cBorin • Clãs", -14, -8,
+                DyeColor.RED, Material.RED_BANNER);
+        spawnNpc(registry, world, "wilds", "Tarin", "§bTarin • Exploração", 8, -14,
+                DyeColor.LIGHT_BLUE, Material.COMPASS);
+        spawnNpc(registry, world, "mods", "Nara", "§dNara • Nemeton+", 18, -18,
+                DyeColor.PURPLE, Material.NETHERITE_SWORD);
+        registry.saveToStore();
 
         spawnLabel(world, 0, Math.max(17, visualRadius() / 2), 4.2, Component.text("NEMETON\n", NamedTextColor.GOLD)
                 .append(Component.text("ZONA SEGURA • sem PvP • sem grife", NamedTextColor.GREEN)), "label:welcome", 1.35f);
@@ -744,59 +861,44 @@ public final class LobbyService implements Listener, CommandExecutor {
         }
     }
 
-    private void spawnNpc(World world, String role, int dx, int dz, DyeColor color, Material heldItem, Component name) {
+    private void spawnNpc(NPCRegistry registry, World world, String role, String skinName, String name,
+                          int dx, int dz, DyeColor color, Material heldItem) {
         int x = blockCenterX() + dx, z = blockCenterZ() + dz;
         int y = naturalSurfaceY(world, x, z) + 1;
         Location location = new Location(world, x + 0.5, y, z + 0.5);
         world.getChunkAt(location).load();
-        spawningLobbyEntity = true;
-        try {
-            world.spawn(location, ArmorStand.class, stand -> {
-                stand.getPersistentDataContainer().set(entityKey, PersistentDataType.STRING, "npc:" + role);
-                stand.customName(name);
-                stand.setCustomNameVisible(true);
-                stand.setInvulnerable(true);
-                stand.setSilent(true);
-                stand.setPersistent(true);
-                stand.setCollidable(false);
-                stand.setGravity(false);
-                stand.setArms(true);
-                stand.setBasePlate(false);
-                stand.setCanMove(false);
-                poseNpc(stand, role);
-                equipNpc(stand.getEquipment(), role, color, heldItem);
-            });
-        } finally {
-            spawningLobbyEntity = false;
+        NPC npc = findLobbyNpc(registry, role);
+        boolean created = npc == null;
+        if (created) npc = registry.createNPC(EntityType.PLAYER, name);
+        npc.data().setPersistent(CITIZENS_ROLE, role);
+        npc.setName(name);
+        npc.setAlwaysUseNameHologram(true);
+        npc.setProtected(true);
+        npc.setUseMinecraftAI(false);
+        LookClose look = npc.getOrAddTrait(LookClose.class);
+        look.lookClose(true);
+        look.setRange(9.0);
+        look.setRealisticLooking(true);
+        look.setPerPlayer(true);
+        if (created) npc.getOrAddTrait(SkinTrait.class).setSkinName(skinName, false);
+        if (npc.isSpawned()) npc.teleport(location, PlayerTeleportEvent.TeleportCause.PLUGIN);
+        else if (!npc.spawn(location)) {
+            plugin.getLogger().warning("Não foi possível posicionar o NPC " + name + ".");
+            return;
         }
+        if (npc.getEntity() instanceof LivingEntity living) equipNpc(living.getEquipment(), role, color, heldItem);
     }
 
-    private void poseNpc(ArmorStand stand, String role) {
-        stand.setHeadPose(new EulerAngle(Math.toRadians(0), Math.toRadians(0), Math.toRadians(0)));
-        switch (role) {
-            case "clans" -> {
-                stand.setRightArmPose(new EulerAngle(Math.toRadians(-72), Math.toRadians(12), Math.toRadians(8)));
-                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-35), Math.toRadians(-22), Math.toRadians(-18)));
-                stand.setRightLegPose(new EulerAngle(Math.toRadians(-6), 0, Math.toRadians(4)));
-                stand.setLeftLegPose(new EulerAngle(Math.toRadians(14), 0, Math.toRadians(-6)));
-            }
-            case "trade" -> {
-                stand.setRightArmPose(new EulerAngle(Math.toRadians(-30), Math.toRadians(0), Math.toRadians(-35)));
-                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-68), Math.toRadians(0), Math.toRadians(24)));
-            }
-            case "wilds" -> {
-                stand.setRightArmPose(new EulerAngle(Math.toRadians(-80), Math.toRadians(0), Math.toRadians(18)));
-                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-12), Math.toRadians(0), Math.toRadians(-28)));
-            }
-            case "mods" -> {
-                stand.setRightArmPose(new EulerAngle(Math.toRadians(-55), Math.toRadians(10), Math.toRadians(38)));
-                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-45), Math.toRadians(-12), Math.toRadians(-35)));
-            }
-            default -> {
-                stand.setRightArmPose(new EulerAngle(Math.toRadians(-18), 0, Math.toRadians(22)));
-                stand.setLeftArmPose(new EulerAngle(Math.toRadians(-8), 0, Math.toRadians(-12)));
-            }
+    private NPC findLobbyNpc(NPCRegistry registry, String role) {
+        NPC selected = null;
+        List<NPC> duplicates = new ArrayList<>();
+        for (NPC npc : registry) {
+            if (!role.equals(npc.data().get(CITIZENS_ROLE))) continue;
+            if (selected == null) selected = npc;
+            else duplicates.add(npc);
         }
+        duplicates.forEach(NPC::destroy);
+        return selected;
     }
 
     private void equipNpc(EntityEquipment equipment, String role, DyeColor dyeColor, Material heldItem) {
@@ -893,12 +995,15 @@ public final class LobbyService implements Listener, CommandExecutor {
     }
 
     private void removeLobbyMobs(World world) {
-        Location center = new Location(world, settings.hub().centerX(), settings.hub().y(), settings.hub().centerZ());
         int radius = visualRadius() + 4;
-        world.getNearbyEntities(center, radius, 96, radius).forEach(entity -> {
+        BoundingBox area = new BoundingBox(settings.hub().centerX() - radius, world.getMinHeight(), settings.hub().centerZ() - radius,
+                settings.hub().centerX() + radius, world.getMaxHeight(), settings.hub().centerZ() + radius);
+        world.getNearbyEntities(area).forEach(entity -> {
             if (entity instanceof Player) return;
             if (entity.getPersistentDataContainer().has(entityKey, PersistentDataType.STRING)) return;
-            if (isInside(entity.getLocation()) && entity instanceof LivingEntity) entity.remove();
+            if (!isInside(entity.getLocation())) return;
+            if (entity instanceof LivingEntity || entity instanceof Projectile || entity instanceof TNTPrimed
+                    || entity instanceof FallingBlock || entity instanceof AreaEffectCloud || entity instanceof EvokerFangs) entity.remove();
         });
     }
 
