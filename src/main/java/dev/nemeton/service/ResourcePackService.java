@@ -16,7 +16,7 @@ import java.util.logging.Level;
 /** Sends the Java visual pack while Bedrock receives the equivalent pack through Geyser. */
 public final class ResourcePackService implements Listener {
     private static final String DEFAULT_URL = "https://raw.githubusercontent.com/dev-netinho/nemeton/main/resourcepacks/dist/Nemeton-Java.zip";
-    private static final String DEFAULT_SHA1 = "3fc34c3dd90738c008278e1f776d376d73164751";
+    private static final String DEFAULT_SHA1 = "010f7e9d002a0d9dce927930d5c44b96795e1e34";
 
     private final JavaPlugin plugin;
 
@@ -30,7 +30,7 @@ public final class ResourcePackService implements Listener {
         if (BedrockForms.isBedrock(player)) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> BedrockForms.sendSimple(plugin, player,
                     "Textura Nemeton",
-                    "Seu Bedrock recebe o pack visual pelo Geyser ao conectar.\n\nSe algum item ainda aparecer vanilla, saia e entre de novo para o cliente recarregar os packs.",
+                    "Seu Bedrock recebe Nemeton + Faithful 32x pelo Geyser ao conectar.\n\nO pack cobre o Minecraft inteiro e os itens autorais. Se algum item aparecer roxo/preto, limpe o cache de packs do servidor e entre novamente.",
                     ignored -> {},
                     "Entendi"), 80L);
             return;
@@ -46,7 +46,7 @@ public final class ResourcePackService implements Listener {
         if (!player.isOnline()) return;
         try {
             player.setResourcePack(UUID.nameUUIDFromBytes(url.getBytes()), url, HexFormat.of().parseHex(hash),
-                    Component.text("Texturas Nemeton: armas, relíquias e mochila com visual Vanilla+."),
+                    Component.text("Nemeton + Faithful 32x: textura completa Vanilla+ e itens autorais."),
                     forced);
         } catch (IllegalArgumentException exception) {
             plugin.getLogger().log(Level.WARNING, "SHA-1 inválido do resource pack Java", exception);

@@ -7,7 +7,8 @@
         "custom_model_data": 7101,
         "bedrock_identifier": "nemeton:root_essence",
         "bedrock_options": {
-          "icon": "nemeton_root_essence"
+          "icon": "nemeton_root_essence",
+          "display_handheld": false
         },
         "display_name": "Essência do Nemeton"
       }
@@ -18,7 +19,8 @@
         "custom_model_data": 7102,
         "bedrock_identifier": "nemeton:root_blade",
         "bedrock_options": {
-          "icon": "nemeton_root_blade"
+          "icon": "nemeton_root_blade",
+          "display_handheld": true
         },
         "display_name": "Lâmina do Nemeton"
       }
@@ -29,7 +31,8 @@
         "custom_model_data": 7103,
         "bedrock_identifier": "nemeton:warden_axe",
         "bedrock_options": {
-          "icon": "nemeton_warden_axe"
+          "icon": "nemeton_warden_axe",
+          "display_handheld": true
         },
         "display_name": "Machado do Guardião"
       }
@@ -40,7 +43,8 @@
         "custom_model_data": 7104,
         "bedrock_identifier": "nemeton:sentinel_chestplate",
         "bedrock_options": {
-          "icon": "nemeton_sentinel_chestplate"
+          "icon": "nemeton_sentinel_chestplate",
+          "display_handheld": false
         },
         "display_name": "Peitoral Sentinela"
       }
@@ -51,7 +55,8 @@
         "custom_model_data": 7105,
         "bedrock_identifier": "nemeton:abyss_heart",
         "bedrock_options": {
-          "icon": "nemeton_abyss_heart"
+          "icon": "nemeton_abyss_heart",
+          "display_handheld": false
         },
         "display_name": "Coração Abissal"
       }
@@ -62,7 +67,8 @@
         "custom_model_data": 7106,
         "bedrock_identifier": "nemeton:end_heart",
         "bedrock_options": {
-          "icon": "nemeton_end_heart"
+          "icon": "nemeton_end_heart",
+          "display_handheld": false
         },
         "display_name": "Coração do Fim"
       }
@@ -73,7 +79,8 @@
         "custom_model_data": 7110,
         "bedrock_identifier": "nemeton:backpack",
         "bedrock_options": {
-          "icon": "nemeton_backpack"
+          "icon": "nemeton_backpack",
+          "display_handheld": false
         },
         "display_name": "Mochila do Nemeton"
       }

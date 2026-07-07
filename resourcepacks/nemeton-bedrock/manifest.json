@@ -1,29 +1,41 @@
 {
   "format_version": 2,
   "header": {
-    "name": "Nemeton Visual Pack",
-    "description": "Texturas Vanilla+ equivalentes para Bedrock via Geyser.",
-    "uuid": "3fc3c31f-1b33-4f85-bd67-ff27bf99e8c4",
+    "name": "Nemeton + Faithful 32x",
+    "description": "Texturas completas Vanilla+ e itens Nemeton para Bedrock via Geyser.",
+    "uuid": "8953d48d-9bd4-4c62-bf43-1b186aa73f76",
     "version": [
       1,
-      0,
+      1,
       0
     ],
     "min_engine_version": [
       1,
       21,
-      0
+      130
     ]
   },
   "modules": [
     {
       "type": "resources",
-      "uuid": "4e173179-f3f1-4e59-8336-ad0ddb2dc54b",
+      "uuid": "cde0d758-04f3-44ac-9a55-8aed325c930c",
       "version": [
         1,
-        0,
+        1,
         0
       ]
     }
+  ],
+  "metadata": {
+    "authors": [
+      "Nemeton contributors",
+      "Vattic",
+      "Faithful Team"
+    ],
+    "license": "https://faithfulpack.net/license",
+    "url": "https://faithfulpack.net/"
+  },
+  "capabilities": [
+    "pbr"
   ]
 }

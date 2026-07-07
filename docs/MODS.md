@@ -13,6 +13,13 @@ Por isso, mods Forge/Fabric que exigem servidor modded não entram diretamente n
 - Zips públicos em `resourcepacks/dist/`: `Nemeton-Java.zip` e `Nemeton-Bedrock.mcpack`.
 - Geyser custom content: `resourcepacks/geyser/nemeton-items.json` mapeia os itens customizados para Bedrock.
 
+Os packs finais usam Faithful 32x como base completa do Minecraft e aplicam o overlay autoral Nemeton por cima. Versões fixadas:
+
+- Java: `Faithful-32x-Java@e3e7c8d99a30bc1a97f529a973f32d7b08833243`
+- Bedrock: `Faithful-32x-Bedrock@0c02eb2c20930677f19f51d87294f30147db8bb0`
+
+Faithful 32x é creditado dentro dos dois packs por `LICENSE.txt` e `CREDITS-NEMETON.txt`. O servidor é gratuito e não monetizado, conforme as condições de uso do pack para resource packs de servidor.
+
 Não existe um único arquivo de textura que seja nativo para Java e Bedrock ao mesmo tempo. O caminho certo é manter dois packs equivalentes no repositório: Java recebe o zip por URL e Bedrock recebe o `.mcpack` pela pasta `plugins/Geyser-Spigot/packs`.
 
 Para reconstruir:
@@ -21,7 +28,7 @@ Para reconstruir:
 scripts/build-resource-packs.py
 ```
 
-O SHA-1 atual do pack Java é registrado em `resourcepacks/dist/Nemeton-Java.sha1` e em `resource-pack.java-sha1`.
+O SHA-1 atual do pack Java é registrado em `resourcepacks/dist/Nemeton-Java.sha1` e em `resource-pack.java-sha1`. O gerador baixa os commits fixados, monta os packs completos e aplica os modelos Nemeton.
 
 ## Nemeton+ alpha
 

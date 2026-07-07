@@ -18,7 +18,7 @@ SMP comunitário Java + Bedrock: um mundo persistente, um centro seguro no próp
 - A clareira possui NPCs interativos em armaduras/poses, formulários Bedrock, textos flutuantes maiores, caminhos cardeais, quatro portais e uma fronteira física alinhada à proteção circular.
 - `Nemeton+` adiciona drops raros de mineração, recompensas de boss, armas/armadura craftáveis, trims/brilho vanilla-safe e guia de mods opcionais em `/mods`.
 - `/menu`/`/painel` abre uma interface principal. No Bedrock, clãs, santuário, raids, guia, Nemeton+ e trocas usam Forms nativas com botões/campos.
-- `resourcepacks/` contém o primeiro Nemeton Visual Pack: Java por URL do GitHub e Bedrock por `.mcpack` servido pelo Geyser, com mapeamento customizado dos itens.
+- `resourcepacks/` contém o Nemeton + Faithful 32x: textura completa equivalente para Java/Bedrock, overlay autoral dos itens Nemeton e mapeamento Geyser. Créditos e licença do Faithful seguem dentro dos dois packs.
 - `Vanilla+ Structures` 0.1.3 adiciona sete estruturas somente em chunks novos, sem blocos ou itens customizados.
 
 ## Desenvolvimento
