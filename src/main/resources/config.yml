@@ -27,7 +27,7 @@ claims:
   war-bonus-percent: 25
 
 war:
-  raids-enabled: false
+  raids-enabled: true
   activation-hours: 72
   minimum-active-days: 7
   truce-hours: 72
@@ -49,6 +49,12 @@ discord:
   clans-category-id: ''
   alerts-channel-id: ''
   approved-role-id: ''
+  clan-leader-role-id: ''
+  clan-officer-role-id: ''
+  clan-member-role-id: ''
+  leaders-channel-id: ''
+  recruitment-channel-id: ''
+  bot-user-id: ''
   intrusion-cooldown-minutes: 10
 
 map:

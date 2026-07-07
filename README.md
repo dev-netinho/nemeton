@@ -71,6 +71,6 @@ Convide o bot com os escopos `bot` e `applications.commands` e conceda apenas `M
 6. Como OP, use `/mods give` para validar a vitrine Nemeton+ e confirmar que o pack visual mudou os ícones no Java e no Bedrock.
 7. Comece com pregeneration pequena: `chunky radius 1500`, valide TPS/espaço, depois aumente para `3000` e só então considere `5000`.
 8. Agende `scripts/backup.sh` a cada seis horas e restaure um snapshot em diretório limpo antes do alpha.
-9. Mantenha `war.raids-enabled: false` até duas raids completas passarem no servidor de teste; só então altere para `true`.
+9. Clãs nascem combatentes e aceitam raids agendadas; santuários pessoais permanecem fora de qualquer raid. Para pausar emergencialmente novas declarações, use `war.raids-enabled: false`.
 
 Detalhes de arquitetura e operação estão em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) e [docs/RUNBOOK.md](docs/RUNBOOK.md).

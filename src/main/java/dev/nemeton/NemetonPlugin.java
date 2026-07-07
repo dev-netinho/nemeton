@@ -27,7 +27,9 @@ public final class NemetonPlugin extends JavaPlugin {
             }
             database = new Database(settings.database()); database.migrate(); NemetonRepository repository = new NemetonRepository(database); ServerState state = repository.load();
             RegionGateway regions = new RegionGateway(settings); DiscordBridge discord = new DiscordBridge(settings.discord());
-            regions.ensureNemeton(); for (Clan clan : state.clans()) clan.claims().forEach(chunk -> regions.createClanClaim(chunk, clan.members().keySet()));
+            regions.ensureNemeton(); for (Clan clan : state.clans()) clan.claims().forEach(chunk -> {
+                java.util.Set<java.util.UUID> access = new java.util.HashSet<>(clan.members().keySet()); access.addAll(state.clanTrustedPlayers(clan.id())); regions.createClanClaim(chunk, access);
+            });
             state.sanctuaries().forEach((chunk, owner) -> regions.createSanctuary(chunk, owner, state.sanctuaryTrustedPlayers(owner)));
             ClanService clans = new ClanService(state, repository, regions, discord, settings); ClaimService claims = new ClaimService(state, repository, regions, clans, settings);
             AllianceService alliances = new AllianceService(state, repository, clans, settings, regions); clans.setMemberChangeHook(alliances::reconcileClan); claims.setAllianceService(alliances); alliances.reconcileAll(); RaidService raids = new RaidService(this, state, repository, regions, discord, settings); this.raidService = raids; raids.setAllianceService(alliances);

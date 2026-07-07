@@ -31,6 +31,7 @@ public final class DiscordCommands {
             Plugin discordSrv = Bukkit.getPluginManager().getPlugin("DiscordSRV"); if (discordSrv == null || !discordSrv.isEnabled()) return;
             Object jda = discordSrv.getClass().getMethod("getJda").invoke(discordSrv); if (jda == null) return;
             discord.registerGuildCommands().join();
+            clans.syncDiscordRoles();
             ClassLoader loader = discordSrv.getClass().getClassLoader();
             Class<?> eventListener = Class.forName("github.scarsz.discordsrv.dependencies.jda.api.hooks.EventListener", true, loader);
             listenerProxy = Proxy.newProxyInstance(loader, new Class<?>[]{eventListener}, (proxy, method, args) -> {
@@ -62,7 +63,7 @@ public final class DiscordCommands {
         try {
             if (command.equals("clan") && "status".equals(subcommand)) {
                 Clan clan = state.clanOf(player).orElseThrow(() -> new IllegalArgumentException("Você ainda não pertence a um clã."));
-                reply(event, "**" + clan.name() + " [" + clan.tag() + "]** — " + clan.members().size() + " membros, " + clan.claims().size() + "/" + clans.claimLimit(clan) + " claims, guerra: " + clan.warState() + ", cofre: " + clan.cofferDiamonds() + "♦"); return;
+                reply(event, "**" + clan.name() + " [" + clan.tag() + "]** — " + clan.members().size() + " membros, " + clan.claims().size() + "/" + clans.claimLimit(clan) + " claims, combate: ativo, cofre: " + clan.cofferDiamonds() + "♦"); return;
             }
             if (command.equals("clan") && "recrutar".equals(subcommand)) {
                 Clan clan = state.clanOf(player).orElseThrow(() -> new IllegalArgumentException("Você ainda não pertence a um clã."));

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.nemeton.config.Settings;
 import dev.nemeton.domain.Clan;
+import dev.nemeton.domain.ClanRole;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
@@ -19,6 +20,11 @@ import java.util.function.Consumer;
 
 public final class DiscordBridge {
     private static final String API = "https://discord.com/api/v10";
+    private static final long VIEW_CHANNEL = 1L << 10;
+    private static final long SEND_MESSAGES = 1L << 11;
+    private static final long READ_HISTORY = 1L << 16;
+    private static final long CONNECT = 1L << 20;
+    private static final long SPEAK = 1L << 21;
     private final Settings.Discord config;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper json = new ObjectMapper();
@@ -30,19 +36,23 @@ public final class DiscordBridge {
 
     public CompletableFuture<DiscordResources> createClanResources(Clan clan) {
         if (!enabled()) return CompletableFuture.completedFuture(new DiscordResources(null, null, null));
-        return post("/guilds/" + config.guildId() + "/roles", Map.of("name", "Clã " + clan.tag(), "mentionable", true))
+        int color = 0x5B9B73 + Math.floorMod(clan.tag().hashCode(), 0x202020);
+        return post("/guilds/" + config.guildId() + "/roles", Map.of("name", "🛡️ Clã • " + clan.tag(), "color", color, "hoist", true, "mentionable", true))
                 .thenCompose(role -> {
                     String roleId = role.path("id").asText();
-                    List<Map<String, Object>> textPermissions = List.of(
-                            Map.of("id", config.guildId(), "type", 0, "deny", "1024", "allow", "0"),
-                            Map.of("id", roleId, "type", 0, "deny", "0", "allow", "3072"));
-                    Map<String, Object> text = new HashMap<>(Map.of("name", "clã-" + clan.tag().toLowerCase(Locale.ROOT), "type", 0, "permission_overwrites", textPermissions));
+                    List<Map<String, Object>> textPermissions = new ArrayList<>();
+                    textPermissions.add(overwrite(config.guildId(), 0, VIEW_CHANNEL, 0));
+                    textPermissions.add(overwrite(roleId, 0, VIEW_CHANNEL | SEND_MESSAGES | READ_HISTORY, 0));
+                    addBotOverwrite(textPermissions, VIEW_CHANNEL | SEND_MESSAGES | READ_HISTORY);
+                    Map<String, Object> text = new HashMap<>(Map.of("name", "🏰・clã-" + clan.tag().toLowerCase(Locale.ROOT), "type", 0, "permission_overwrites", textPermissions,
+                            "topic", "Quartel privado de " + clan.name() + " [" + clan.tag() + "]. O chat daqui também chega ao Minecraft."));
                     if (!config.clansCategoryId().isBlank()) text.put("parent_id", config.clansCategoryId());
                     return post("/guilds/" + config.guildId() + "/channels", text).thenCompose(textChannel -> {
-                        List<Map<String, Object>> voicePermissions = List.of(
-                                Map.of("id", config.guildId(), "type", 0, "deny", "1024", "allow", "0"),
-                                Map.of("id", roleId, "type", 0, "deny", "0", "allow", "1049600"));
-                        Map<String, Object> voice = new HashMap<>(Map.of("name", "Clã " + clan.tag(), "type", 2, "permission_overwrites", voicePermissions));
+                        List<Map<String, Object>> voicePermissions = new ArrayList<>();
+                        voicePermissions.add(overwrite(config.guildId(), 0, VIEW_CHANNEL | CONNECT, 0));
+                        voicePermissions.add(overwrite(roleId, 0, VIEW_CHANNEL | CONNECT | SPEAK, 0));
+                        addBotOverwrite(voicePermissions, VIEW_CHANNEL | CONNECT | SPEAK);
+                        Map<String, Object> voice = new HashMap<>(Map.of("name", "🔊・" + clan.tag(), "type", 2, "permission_overwrites", voicePermissions));
                         if (!config.clansCategoryId().isBlank()) voice.put("parent_id", config.clansCategoryId());
                         return post("/guilds/" + config.guildId() + "/channels", voice)
                                 .thenApply(voiceChannel -> new DiscordResources(roleId, textChannel.path("id").asText(), voiceChannel.path("id").asText()));
@@ -54,6 +64,32 @@ public final class DiscordBridge {
         if (!enabled() || roleId == null) return CompletableFuture.completedFuture(null);
         return linkedDiscordId(minecraftId).map(discordId -> request(add ? "PUT" : "DELETE", "/guilds/" + config.guildId() + "/members/" + discordId + "/roles/" + roleId, null).thenApply(ignored -> (Void) null))
                 .orElseGet(() -> CompletableFuture.completedFuture(null));
+    }
+    public CompletableFuture<Void> syncClanIdentity(UUID minecraftId, String clanRoleId, ClanRole rank) {
+        if (!enabled()) return CompletableFuture.completedFuture(null);
+        return linkedDiscordId(minecraftId).map(discordId -> {
+            List<String> managed = configuredRankRoles();
+            CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
+            for (String role : managed) chain = chain.thenCompose(ignored -> setRole(discordId, role, false));
+            if (clanRoleId != null && !clanRoleId.isBlank()) chain = chain.thenCompose(ignored -> setRole(discordId, clanRoleId, true));
+            String rankRole = switch (rank) {
+                case LEADER -> config.clanLeaderRoleId();
+                case OFFICER -> config.clanOfficerRoleId();
+                case MEMBER -> config.clanMemberRoleId();
+            };
+            if (!rankRole.isBlank()) chain = chain.thenCompose(ignored -> setRole(discordId, rankRole, true));
+            return chain;
+        }).orElseGet(() -> CompletableFuture.completedFuture(null));
+    }
+    public CompletableFuture<Void> removeClanIdentity(UUID minecraftId, String clanRoleId) {
+        if (!enabled()) return CompletableFuture.completedFuture(null);
+        return linkedDiscordId(minecraftId).map(discordId -> {
+            List<String> roles = new ArrayList<>(configuredRankRoles());
+            if (clanRoleId != null && !clanRoleId.isBlank()) roles.add(clanRoleId);
+            CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
+            for (String role : roles) chain = chain.thenCompose(ignored -> setRole(discordId, role, false));
+            return chain;
+        }).orElseGet(() -> CompletableFuture.completedFuture(null));
     }
     public void alert(String message) { if (enabled() && !config.alertsChannelId().isBlank()) postMessage(config.alertsChannelId(), message); }
     public void clanMessage(Clan clan, String message) { if (enabled() && clan.discordTextId() != null) postMessage(clan.discordTextId(), message); }
@@ -80,6 +116,19 @@ public final class DiscordBridge {
 
     private void postMessage(String channel, String message) { post("/channels/" + channel + "/messages", Map.of("content", message.substring(0, Math.min(1900, message.length())))); }
     private CompletableFuture<JsonNode> post(String path, Object body) { return request("POST", path, body); }
+    private CompletableFuture<Void> setRole(String discordId, String roleId, boolean add) {
+        if (roleId == null || roleId.isBlank()) return CompletableFuture.completedFuture(null);
+        return request(add ? "PUT" : "DELETE", "/guilds/" + config.guildId() + "/members/" + discordId + "/roles/" + roleId, null).thenApply(ignored -> null);
+    }
+    private List<String> configuredRankRoles() {
+        return List.of(config.clanLeaderRoleId(), config.clanOfficerRoleId(), config.clanMemberRoleId()).stream().filter(value -> value != null && !value.isBlank()).toList();
+    }
+    private Map<String, Object> overwrite(String id, int type, long allow, long deny) {
+        return Map.of("id", id, "type", type, "allow", Long.toString(allow), "deny", Long.toString(deny));
+    }
+    private void addBotOverwrite(List<Map<String, Object>> permissions, long allow) {
+        if (!config.botUserId().isBlank()) permissions.add(overwrite(config.botUserId(), 1, allow, 0));
+    }
     public CompletableFuture<Void> registerGuildCommands() {
         if (!enabled()) return CompletableFuture.completedFuture(null);
         return request("GET", "/oauth2/applications/@me", null).thenCompose(application -> {

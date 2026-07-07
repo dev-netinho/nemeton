@@ -28,6 +28,7 @@ public final class Database implements AutoCloseable {
     public void migrate() {
         Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
         if (!tableExists("clans")) runInitialSchema();
+        if (!tableExists("clan_trust")) runSqlResource("/db/migration/V2__clan_trust_and_permanent_war.sql");
     }
 
     public Connection connection() throws SQLException { return dataSource.getConnection(); }
@@ -42,8 +43,12 @@ public final class Database implements AutoCloseable {
     }
 
     private void runInitialSchema() {
-        try (var input = Database.class.getResourceAsStream("/db/migration/V1__initial_schema.sql")) {
-            if (input == null) throw new IllegalStateException("Migration V1__initial_schema.sql não encontrada no JAR.");
+        runSqlResource("/db/migration/V1__initial_schema.sql");
+    }
+
+    private void runSqlResource(String resource) {
+        try (var input = Database.class.getResourceAsStream(resource)) {
+            if (input == null) throw new IllegalStateException("Migration " + resource + " não encontrada no JAR.");
             String sql = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             try (Connection connection = connection(); Statement statement = connection.createStatement()) {
                 for (String raw : sql.split(";")) {

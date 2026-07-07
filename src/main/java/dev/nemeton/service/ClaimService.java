@@ -22,7 +22,7 @@ public final class ClaimService {
         if (state.clanAt(chunk).isPresent() || state.sanctuaryOwner(chunk).isPresent()) throw new IllegalArgumentException("Este chunk já está protegido.");
         if (clan.claims().size() >= clans.claimLimit(clan)) throw new IllegalArgumentException("O clã atingiu o limite de claims.");
         if (!NemetonRules.isConnected(clan.claims(), chunk)) throw new IllegalArgumentException("O claim deve tocar outro território do clã.");
-        repository.addClaim(clan.id(), chunk); clan.addClaim(chunk); state.indexClaim(chunk, clan.id()); regions.createClanClaim(chunk, clan.members().keySet());
+        repository.addClaim(clan.id(), chunk); clan.addClaim(chunk); state.indexClaim(chunk, clan.id()); regions.createClanClaim(chunk, clans.claimAccessors(clan));
     }
     public void unclaim(Clan clan, UUID actor, ChunkPos chunk) {
         clans.requireManager(clan, actor); if (!clan.claims().contains(chunk)) throw new IllegalArgumentException("Este chunk não pertence ao clã.");
@@ -48,10 +48,18 @@ public final class ClaimService {
         else { repository.untrustSanctuary(owner, trusted); state.untrustSanctuary(owner, trusted); }
         for (ChunkPos chunk : state.sanctuariesOf(owner)) regions.createSanctuary(chunk, owner, state.sanctuaryTrustedPlayers(owner));
     }
+    public void trustClan(Clan clan, UUID actor, UUID trusted, boolean add) {
+        clans.requireManager(clan, actor);
+        if (clan.contains(trusted)) throw new IllegalArgumentException("Membros do clã já possuem acesso.");
+        if (add) { repository.trustClan(clan.id(), trusted); state.trustClan(clan.id(), trusted); }
+        else { repository.untrustClan(clan.id(), trusted); state.untrustClan(clan.id(), trusted); }
+        regions.syncClanMembers(clan.claims(), clans.claimAccessors(clan));
+    }
     public boolean canAccess(UUID player, ChunkPos chunk) {
         Optional<UUID> sanctuary = state.sanctuaryOwner(chunk); if (sanctuary.isPresent()) return state.sanctuaryTrusted(sanctuary.get(), player);
         Optional<Clan> clan = state.clanAt(chunk);
-        if (clan.isEmpty() || clan.get().contains(player) || state.activeRaidAt(chunk).filter(r -> r.participants().containsKey(player)).isPresent()) return true;
+        if (clan.isEmpty() || clan.get().contains(player) || state.clanTrusted(clan.get().id(), player)
+                || state.activeRaidAt(chunk).filter(r -> r.participants().containsKey(player)).isPresent()) return true;
         return alliances != null && state.clanOf(player).map(visitor -> alliances.grantsAccess(clan.get().id(), visitor.id())).orElse(false);
     }
     public boolean isHub(Location location) {

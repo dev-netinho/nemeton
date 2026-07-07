@@ -43,6 +43,12 @@ public record Settings(Database database, Hub hub, Claims claims, War war, Disco
                 firstNonBlank(System.getenv("DISCORD_BOT_TOKEN"), env(config.getString("discord.bot-token", ""))),
                 env(config.getString("discord.clans-category-id", "")), env(config.getString("discord.alerts-channel-id", "")),
                 env(config.getString("discord.approved-role-id", "")),
+                env(config.getString("discord.clan-leader-role-id", "")),
+                env(config.getString("discord.clan-officer-role-id", "")),
+                env(config.getString("discord.clan-member-role-id", "")),
+                env(config.getString("discord.leaders-channel-id", "")),
+                env(config.getString("discord.recruitment-channel-id", "")),
+                env(config.getString("discord.bot-user-id", "")),
                 Duration.ofMinutes(config.getLong("discord.intrusion-cooldown-minutes", 10)));
         return new Settings(database, hub, claims, war, discord);
     }
@@ -66,5 +72,8 @@ public record Settings(Database database, Hub hub, Claims claims, War war, Disco
                       Duration declarationMaximum, Duration choiceWindow, Duration duration, int captureSeconds,
                       int deathLockSeconds, int minimumTeam, int maximumTeam, int minimumStake, int maximumStake) {}
     public record Discord(boolean enabled, String guildId, String botToken, String clansCategoryId,
-                          String alertsChannelId, String approvedRoleId, Duration intrusionCooldown) {}
+                          String alertsChannelId, String approvedRoleId,
+                          String clanLeaderRoleId, String clanOfficerRoleId, String clanMemberRoleId,
+                          String leadersChannelId, String recruitmentChannelId, String botUserId,
+                          Duration intrusionCooldown) {}
 }

@@ -45,6 +45,9 @@ public final class NemetonRepository {
             try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM sanctuary_trust"); ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) state.trustSanctuary(UUID.fromString(rs.getString("owner_uuid")), UUID.fromString(rs.getString("trusted_uuid")));
             }
+            try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM clan_trust"); ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) state.trustClan(UUID.fromString(rs.getString("clan_id")), UUID.fromString(rs.getString("trusted_uuid")));
+            }
             try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM alliances"); ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) state.putAlliance(new Alliance(UUID.fromString(rs.getString("clan_a")), UUID.fromString(rs.getString("clan_b")), Alliance.Status.valueOf(rs.getString("status")), rs.getBoolean("access_granted"), instant(rs, "truce_until")));
             }
@@ -85,6 +88,8 @@ public final class NemetonRepository {
     public void removeSanctuary(ChunkPos pos) { update("DELETE FROM sanctuaries WHERE world_name=? AND chunk_x=? AND chunk_z=?", pos.world(), pos.x(), pos.z()); }
     public void trustSanctuary(UUID owner, UUID trusted) { update("INSERT IGNORE INTO sanctuary_trust(owner_uuid,trusted_uuid) VALUES(?,?)", owner.toString(), trusted.toString()); }
     public void untrustSanctuary(UUID owner, UUID trusted) { update("DELETE FROM sanctuary_trust WHERE owner_uuid=? AND trusted_uuid=?", owner.toString(), trusted.toString()); }
+    public void trustClan(UUID clan, UUID trusted) { update("INSERT IGNORE INTO clan_trust(clan_id,trusted_uuid) VALUES(?,?)", clan.toString(), trusted.toString()); }
+    public void untrustClan(UUID clan, UUID trusted) { update("DELETE FROM clan_trust WHERE clan_id=? AND trusted_uuid=?", clan.toString(), trusted.toString()); }
     public void saveClanRuntime(Clan clan) {
         update("UPDATE clans SET war_state=?,war_changed_at=?,war_locked_until=?,coffer_diamonds=?,coffer_world=?,coffer_x=?,coffer_y=?,coffer_z=?,discord_role_id=?,discord_text_id=?,discord_voice_id=? WHERE id=?",
                 clan.warState().name(), timestamp(clan.warChangedAt()), timestamp(clan.warLockedUntil()), clan.cofferDiamonds(),

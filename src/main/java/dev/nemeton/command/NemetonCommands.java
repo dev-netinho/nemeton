@@ -51,7 +51,8 @@ public final class NemetonCommands implements TabExecutor {
     private void clan(Player player, String[] args) {
         if (args.length == 0 || args[0].equalsIgnoreCase("ajuda")) {
             if (openClanMenu(player)) return;
-            player.sendMessage("§6/clan criar <nome> <tag> | convidar <jogador> | aceitar | sair | expulsar <jogador> | promover <jogador> | claim | unclaim | guerra <ativar|desativar> | cofre <definir|depositar> | aliar <tag> | romper <tag> | acesso <tag> <ativar|desativar> | chat <mensagem> | info");
+            player.sendMessage("§6/clan criar <nome> <tag> | convidar <jogador> | aceitar | sair | expulsar <jogador> | promover <jogador> | claim | unclaim | confiar <jogador> | desconfiar <jogador> | cofre <definir|depositar> | aliar <tag> | romper <tag> | acesso <tag> <ativar|desativar> | chat <mensagem> | info");
+            player.sendMessage("§cAo entrar em um clã, você aceita participar de ataques e defesas. Santuários pessoais continuam invioláveis.");
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -63,13 +64,14 @@ public final class NemetonCommands implements TabExecutor {
             case "promover" -> { requireArgs(args, 2); clans.promote(ownClan(player), player.getUniqueId(), Bukkit.getOfflinePlayer(args[1]).getUniqueId()); player.sendMessage("§aCargo atualizado."); }
             case "claim" -> { claims.claim(ownClan(player), player.getUniqueId(), ChunkPos.of(player.getChunk())); player.sendMessage("§aChunk reivindicado."); }
             case "unclaim" -> { claims.unclaim(ownClan(player), player.getUniqueId(), ChunkPos.of(player.getChunk())); player.sendMessage("§eClaim removido."); }
-            case "guerra" -> { requireArgs(args, 2); boolean enable = args[1].equalsIgnoreCase("ativar"); if (enable) requireRaidsEnabled(); clans.setWar(ownClan(player), player.getUniqueId(), enable); player.sendMessage("§eEstado de guerra atualizado."); }
+            case "guerra" -> clans.setWar(ownClan(player), player.getUniqueId(), true);
+            case "confiar", "desconfiar" -> { requireArgs(args, 2); boolean add = args[0].equalsIgnoreCase("confiar"); claims.trustClan(ownClan(player), player.getUniqueId(), Bukkit.getOfflinePlayer(args[1]).getUniqueId(), add); player.sendMessage(add ? "§aJogador autorizado no território do clã." : "§eAcesso ao território do clã removido."); }
             case "cofre" -> coffer(player, args);
             case "aliar" -> { requireArgs(args, 2); Clan source = ownClan(player), target = clanTag(args[1]); Alliance alliance = alliances.requestOrAccept(source, target, player.getUniqueId()); player.sendMessage(alliance.status() == Alliance.Status.ACTIVE ? "§aAliança firmada." : "§ePedido de aliança enviado."); }
             case "romper" -> { requireArgs(args, 2); alliances.breakAlliance(ownClan(player), clanTag(args[1]), player.getUniqueId()); player.sendMessage("§eAliança rompida; trégua iniciada."); }
             case "acesso" -> { requireArgs(args, 3); alliances.setAccess(ownClan(player), clanTag(args[1]), player.getUniqueId(), args[2].equalsIgnoreCase("ativar")); player.sendMessage("§aAcesso da aliança atualizado."); }
             case "chat" -> { requireArgs(args, 2); Clan clan = ownClan(player); String message = String.join(" ", Arrays.copyOfRange(args, 1, args.length)); clans.chat(clan, player.getName(), message); }
-            case "info" -> { Clan clan = ownClan(player); player.sendMessage("§6" + clan.name() + " [" + clan.tag() + "] §7— membros: " + clan.members().size() + ", claims: " + clan.claims().size() + "/" + clans.claimLimit(clan) + ", guerra: " + clan.warState() + ", cofre: " + clan.cofferDiamonds() + "♦"); }
+            case "info" -> { Clan clan = ownClan(player); player.sendMessage("§6" + clan.name() + " [" + clan.tag() + "] §7— membros: " + clan.members().size() + ", claims: " + clan.claims().size() + "/" + clans.claimLimit(clan) + ", combate: §cATIVO§7, confiáveis: " + state.clanTrustedPlayers(clan.id()).size() + ", cofre: " + clan.cofferDiamonds() + "♦"); }
             default -> throw new IllegalArgumentException("Subcomando de clã desconhecido.");
         }
     }
@@ -122,7 +124,7 @@ public final class NemetonCommands implements TabExecutor {
     private Clan clanTag(String tag) { return state.clanByTag(tag).orElseThrow(() -> new IllegalArgumentException("Clã não encontrado.")); }
     private Raid raidId(String id) { return raids.byShortId(id).orElseThrow(() -> new IllegalArgumentException("Raid não encontrada.")); }
     private Instant parseSlot(String text) { return LocalDateTime.parse(text, SLOT_FORMAT).atZone(ZONE).toInstant(); }
-    private void requireRaidsEnabled() { if (!settings.war().raidsEnabled()) throw new IllegalArgumentException("Raids e modo de guerra estão desativados neste alpha."); }
+    private void requireRaidsEnabled() { if (!settings.war().raidsEnabled()) throw new IllegalArgumentException("Raids estão temporariamente pausadas pela administração."); }
     private void requireArgs(String[] args, int count) { if (args.length < count) throw new IllegalArgumentException("Argumentos insuficientes. Use o comando de ajuda."); }
     private int count(Player player, Material type) { return Arrays.stream(player.getInventory().getContents()).filter(Objects::nonNull).filter(i -> i.getType() == type).mapToInt(ItemStack::getAmount).sum(); }
     private void remove(Player player, Material type, int amount) { int left = amount; for (ItemStack item : player.getInventory().getContents()) { if (item == null || item.getType() != type) continue; int take = Math.min(left, item.getAmount()); item.setAmount(item.getAmount() - take); left -= take; if (left == 0) return; } }
@@ -175,10 +177,10 @@ public final class NemetonCommands implements TabExecutor {
         Optional<Clan> maybeClan = state.clanOf(player.getUniqueId());
         String status = maybeClan.map(clan -> "Seu clã: " + clan.name() + " [" + clan.tag() + "]\n"
                         + "Membros: " + clan.members().size() + "\nClaims: " + clan.claims().size() + "/" + clans.claimLimit(clan) + "\n"
-                        + "Guerra: " + clan.warState() + "\nCofre: " + clan.cofferDiamonds() + " diamantes")
-                .orElse("Você ainda não pertence a um clã.");
+                        + "Combate: ATIVO\nCofre: " + clan.cofferDiamonds() + " diamantes")
+                .orElse("Você ainda não pertence a um clã. Seu santuário pessoal é inviolável.");
         List<String> buttons = maybeClan.isPresent()
-                ? List.of("Info", "Claimar chunk", "Remover claim", "Convidar jogador", "Cofre", "Aliança", "Sair do clã", "Fechar")
+                ? List.of("Info", "Claimar chunk", "Remover claim", "Convidar jogador", "Acesso ao território", "Cofre", "Aliança", "Sair do clã", "Fechar")
                 : List.of("Criar clã", "Aceitar convite", "Ajuda", "Fechar");
         return BedrockForms.sendSimple(plugin, player, "Clãs", status, index -> {
             if (maybeClan.isEmpty()) {
@@ -195,9 +197,10 @@ public final class NemetonCommands implements TabExecutor {
                 case 1 -> runSafely(player, () -> { claims.claim(ownClan(player), player.getUniqueId(), ChunkPos.of(player.getChunk())); player.sendMessage("§aChunk reivindicado."); });
                 case 2 -> runSafely(player, () -> { claims.unclaim(ownClan(player), player.getUniqueId(), ChunkPos.of(player.getChunk())); player.sendMessage("§eClaim removido."); });
                 case 3 -> clanInviteForm(player);
-                case 4 -> clanCofferMenu(player);
-                case 5 -> clanAllianceMenu(player);
-                case 6 -> confirm(player, "Sair do clã?", "Você vai sair do clã atual. Confirma?", () -> { clans.leave(player.getUniqueId()); player.sendMessage("§eVocê saiu do clã."); });
+                case 4 -> clanTrustMenu(player);
+                case 5 -> clanCofferMenu(player);
+                case 6 -> clanAllianceMenu(player);
+                case 7 -> confirm(player, "Sair do clã?", "Ao sair, você perde acesso aos claims do clã. Confirma?", () -> { clans.leave(player.getUniqueId()); player.sendMessage("§eVocê saiu do clã."); });
                 default -> { }
             }
         }, buttons.toArray(String[]::new));
@@ -227,6 +230,25 @@ public final class NemetonCommands implements TabExecutor {
         }), new BedrockForms.Input("Jogador", "nome exato"))) {
             player.sendMessage("§eUse: /clan convidar <jogador>");
         }
+    }
+
+    private void clanTrustMenu(Player player) {
+        BedrockForms.sendSimple(plugin, player, "Acesso ao território",
+                "Líeres e vice-líderes podem permitir que uma pessoa construa e interaja nos claims sem torná-la membro do clã.",
+                index -> {
+                    if (index == 0) clanTrustForm(player, true);
+                    else if (index == 1) clanTrustForm(player, false);
+                }, "Autorizar jogador", "Remover acesso", "Fechar");
+    }
+
+    private void clanTrustForm(Player player, boolean add) {
+        BedrockForms.sendInput(plugin, player, add ? "Autorizar no território" : "Remover acesso",
+                values -> runSafely(player, () -> {
+                    String target = values.get(0).trim();
+                    if (target.isBlank()) throw new IllegalArgumentException("Informe um jogador.");
+                    claims.trustClan(ownClan(player), player.getUniqueId(), Bukkit.getOfflinePlayer(target).getUniqueId(), add);
+                    player.sendMessage(add ? "§aJogador autorizado no território do clã." : "§eAcesso removido.");
+                }), new BedrockForms.Input("Jogador", "nome exato"));
     }
 
     private void clanCofferMenu(Player player) {
@@ -326,7 +348,7 @@ public final class NemetonCommands implements TabExecutor {
 
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length != 1) return List.of(); return switch (command.getName()) {
-            case "clan" -> List.of("ajuda", "criar", "convidar", "aceitar", "sair", "expulsar", "promover", "claim", "unclaim", "guerra", "cofre", "aliar", "romper", "acesso", "chat", "info");
+            case "clan" -> List.of("ajuda", "criar", "convidar", "aceitar", "sair", "expulsar", "promover", "claim", "unclaim", "confiar", "desconfiar", "cofre", "aliar", "romper", "acesso", "chat", "info");
             case "santuario" -> List.of("ajuda", "marcar", "expandir", "remover", "confiar", "desconfiar");
             case "raid" -> List.of("ajuda", "declarar", "agendar", "status", "premio");
             case "menu", "painel" -> List.of("clan", "santuario", "troca", "mapa", "mochila", "mods");

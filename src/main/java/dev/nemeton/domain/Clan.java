@@ -20,7 +20,7 @@ public final class Clan {
     private String discordVoiceId;
 
     public Clan(UUID id, String name, String tag, UUID owner) {
-        this(id, name, tag, owner, WarState.PEACEFUL, null, null, 0, null);
+        this(id, name, tag, owner, WarState.ACTIVE, Instant.now(), null, 0, null);
     }
 
     public Clan(UUID id, String name, String tag, UUID owner, WarState warState,
@@ -74,4 +74,3 @@ public final class Clan {
 
     public record BlockPoint(String world, int x, int y, int z) {}
 }
-

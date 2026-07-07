@@ -11,6 +11,7 @@ public final class ServerState {
     private final Map<ChunkPos, UUID> clanByChunk = new ConcurrentHashMap<>();
     private final Map<ChunkPos, UUID> sanctuaryByChunk = new ConcurrentHashMap<>();
     private final Map<UUID, Set<UUID>> sanctuaryTrust = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<UUID>> clanTrust = new ConcurrentHashMap<>();
     private final Map<UUID, Raid> raids = new ConcurrentHashMap<>();
     private final Map<String, Alliance> alliances = new ConcurrentHashMap<>();
 
@@ -32,6 +33,8 @@ public final class ServerState {
     public boolean sanctuaryTrusted(UUID owner, UUID player) {
         return owner.equals(player) || sanctuaryTrust.getOrDefault(owner, Set.of()).contains(player);
     }
+    public Set<UUID> clanTrustedPlayers(UUID clan) { return Set.copyOf(clanTrust.getOrDefault(clan, Set.of())); }
+    public boolean clanTrusted(UUID clan, UUID player) { return clanTrust.getOrDefault(clan, Set.of()).contains(player); }
     public Optional<Raid> raid(UUID id) { return Optional.ofNullable(raids.get(id)); }
     public Optional<Alliance> alliance(UUID first, UUID second) { return Optional.ofNullable(alliances.get(allianceKey(first, second))); }
     public Optional<Raid> activeRaidForClan(UUID clanId) {
@@ -61,6 +64,8 @@ public final class ServerState {
     public void removeSanctuary(ChunkPos chunk) { sanctuaryByChunk.remove(chunk); }
     public void trustSanctuary(UUID owner, UUID trusted) { sanctuaryTrust.computeIfAbsent(owner, ignored -> ConcurrentHashMap.newKeySet()).add(trusted); }
     public void untrustSanctuary(UUID owner, UUID trusted) { sanctuaryTrust.getOrDefault(owner, Set.of()).remove(trusted); }
+    public void trustClan(UUID clan, UUID trusted) { clanTrust.computeIfAbsent(clan, ignored -> ConcurrentHashMap.newKeySet()).add(trusted); }
+    public void untrustClan(UUID clan, UUID trusted) { clanTrust.getOrDefault(clan, Set.of()).remove(trusted); }
     public void addRaid(Raid raid) { raids.put(raid.id(), raid); }
     public void putAlliance(Alliance alliance) { alliances.put(allianceKey(alliance.clanA(), alliance.clanB()), alliance); }
     public void removeAlliance(UUID first, UUID second) { alliances.remove(allianceKey(first, second)); }
