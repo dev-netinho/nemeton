@@ -5,13 +5,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import shutil
-import struct
 import urllib.request
-import zlib
 import zipfile
 from pathlib import Path
+
+from PIL import Image, ImageEnhance
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "resourcepacks"
@@ -47,6 +46,26 @@ NAMES = {
     "abyss_heart": "Coração Abissal",
     "end_heart": "Coração do Fim",
     "backpack": "Mochila do Nemeton",
+}
+
+BASE_TEXTURES = {
+    "root_essence": "amethyst_shard",
+    "root_blade": "diamond_sword",
+    "warden_axe": "diamond_axe",
+    "sentinel_chestplate": "diamond_chestplate",
+    "abyss_heart": "nether_star",
+    "end_heart": "dragon_breath",
+    "backpack": "bundle",
+}
+
+PALETTES = {
+    "root_essence": [(25, 17, 42), (72, 43, 116), (145, 79, 205), (218, 146, 255), (194, 248, 255)],
+    "root_blade": [(19, 18, 28), (50, 38, 82), (111, 57, 164), (187, 94, 235), (144, 243, 255)],
+    "warden_axe": [(18, 24, 29), (35, 63, 69), (55, 125, 127), (100, 205, 190), (210, 250, 214)],
+    "sentinel_chestplate": [(17, 24, 27), (29, 69, 66), (55, 132, 111), (109, 215, 163), (225, 252, 207)],
+    "abyss_heart": [(14, 7, 18), (49, 13, 55), (104, 18, 78), (190, 38, 99), (255, 121, 170)],
+    "end_heart": [(24, 13, 45), (67, 35, 111), (122, 64, 182), (195, 111, 234), (148, 236, 255)],
+    "backpack": [(38, 23, 22), (78, 44, 34), (131, 76, 47), (194, 127, 70), (245, 205, 113)],
 }
 
 
@@ -97,124 +116,45 @@ def merge_overlay(overlay: Path, destination: Path) -> None:
     shutil.copytree(overlay, destination, dirs_exist_ok=True)
 
 
-class Canvas:
-    def __init__(self, size: int = 32):
-        self.size = size
-        self.pixels = [[(0, 0, 0, 0) for _ in range(size)] for _ in range(size)]
-
-    def set(self, x: int, y: int, color: tuple[int, int, int, int]) -> None:
-        if 0 <= x < self.size and 0 <= y < self.size:
-            self.pixels[y][x] = color
-
-    def rect(self, x0: int, y0: int, x1: int, y1: int, color: tuple[int, int, int, int]) -> None:
-        for y in range(y0, y1 + 1):
-            for x in range(x0, x1 + 1):
-                self.set(x, y, color)
-
-    def line(self, x0: int, y0: int, x1: int, y1: int, color: tuple[int, int, int, int], width: int = 1) -> None:
-        dx = abs(x1 - x0)
-        dy = -abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        err = dx + dy
-        x, y = x0, y0
-        while True:
-            r = width // 2
-            self.rect(x - r, y - r, x + r, y + r, color)
-            if x == x1 and y == y1:
-                break
-            e2 = 2 * err
-            if e2 >= dy:
-                err += dy
-                x += sx
-            if e2 <= dx:
-                err += dx
-                y += sy
-
-    def diamond(self, cx: int, cy: int, radius: int, color: tuple[int, int, int, int]) -> None:
-        for y in range(cy - radius, cy + radius + 1):
-            for x in range(cx - radius, cx + radius + 1):
-                if abs(x - cx) + abs(y - cy) <= radius:
-                    self.set(x, y, color)
-
-    def save(self, path: Path) -> None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        raw = bytearray()
-        for row in self.pixels:
-            raw.append(0)
-            for r, g, b, a in row:
-                raw.extend((r, g, b, a))
-        def chunk(kind: bytes, data: bytes) -> bytes:
-            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
-        png = b"\x89PNG\r\n\x1a\n"
-        png += chunk(b"IHDR", struct.pack(">IIBBBBB", self.size, self.size, 8, 6, 0, 0, 0))
-        png += chunk(b"IDAT", zlib.compress(bytes(raw), 9))
-        png += chunk(b"IEND", b"")
-        path.write_bytes(png)
+def remove_overlong_paths(root: Path, maximum: int = 79) -> None:
+    """Remove optional assets that Bedrock rejects because their path is too long."""
+    for path in sorted(root.rglob("*"), reverse=True):
+        if path.is_file() and len(path.relative_to(root).as_posix()) > maximum:
+            path.unlink()
 
 
-def icon(name: str) -> Canvas:
-    c = Canvas()
-    dark = (34, 23, 31, 255)
-    wood = (96, 57, 38, 255)
-    gold = (245, 198, 78, 255)
-    purple = (184, 85, 255, 255)
-    violet = (105, 58, 181, 255)
-    cyan = (118, 242, 255, 255)
-    green = (76, 184, 112, 255)
-    black = (14, 10, 18, 255)
-    red = (165, 26, 64, 255)
-    if name == "root_essence":
-        c.diamond(16, 15, 10, violet)
-        c.diamond(16, 14, 6, purple)
-        c.line(12, 7, 19, 23, cyan, 1)
-        c.set(16, 14, (255, 255, 255, 255))
-    elif name == "root_blade":
-        c.line(8, 25, 24, 7, dark, 5)
-        c.line(10, 23, 23, 8, purple, 3)
-        c.line(12, 21, 22, 9, cyan, 1)
-        c.line(6, 26, 12, 20, wood, 4)
-        c.line(6, 21, 11, 26, gold, 2)
-    elif name == "warden_axe":
-        c.line(10, 27, 20, 6, wood, 4)
-        c.rect(17, 5, 25, 12, dark)
-        c.rect(19, 6, 27, 14, violet)
-        c.rect(20, 7, 24, 10, cyan)
-        c.line(13, 19, 25, 7, gold, 1)
-    elif name == "sentinel_chestplate":
-        c.rect(9, 9, 22, 25, dark)
-        c.rect(11, 10, 20, 23, green)
-        c.rect(7, 11, 11, 17, violet)
-        c.rect(20, 11, 24, 17, violet)
-        c.line(10, 14, 21, 14, gold, 1)
-        c.diamond(16, 18, 3, cyan)
-    elif name == "abyss_heart":
-        c.diamond(16, 16, 11, black)
-        c.diamond(16, 16, 7, red)
-        c.line(9, 16, 23, 16, purple, 2)
-        c.line(16, 8, 16, 24, violet, 2)
-    elif name == "end_heart":
-        c.diamond(16, 16, 11, violet)
-        c.diamond(16, 16, 7, purple)
-        c.line(8, 18, 24, 12, cyan, 2)
-        c.line(10, 9, 22, 24, gold, 1)
-    elif name == "backpack":
-        c.rect(8, 10, 23, 25, wood)
-        c.rect(10, 8, 21, 14, (128, 77, 43, 255))
-        c.rect(11, 15, 20, 23, (72, 43, 32, 255))
-        c.line(8, 12, 4, 20, dark, 2)
-        c.line(23, 12, 27, 20, dark, 2)
-        c.rect(14, 16, 17, 19, gold)
-        c.line(9, 11, 22, 24, purple, 1)
-    return c
+def styled_icon(name: str, base_root: Path) -> Image.Image:
+    """Recolor a detailed Faithful sprite while preserving its shape and alpha."""
+    source = base_root / "assets" / "minecraft" / "textures" / "item" / f"{BASE_TEXTURES[name]}.png"
+    image = Image.open(source).convert("RGBA")
+    pixels = image.load()
+    palette = PALETTES[name]
+    for y in range(image.height):
+        for x in range(image.width):
+            red, green, blue, alpha = pixels[x, y]
+            if alpha == 0:
+                continue
+            luminance = (red * 299 + green * 587 + blue * 114) // 1000
+            position = luminance * (len(palette) - 1) / 255
+            lower = int(position)
+            upper = min(lower + 1, len(palette) - 1)
+            mix = position - lower
+            color = tuple(round(palette[lower][channel] * (1 - mix) + palette[upper][channel] * mix) for channel in range(3))
+            pixels[x, y] = (*color, alpha)
+    return ImageEnhance.Contrast(image).enhance(1.08)
 
 
-def build_java() -> None:
+def save_icon(image: Image.Image, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    image.save(destination)
+
+
+def build_java(base_root: Path) -> None:
     ensure_clean(JAVA)
     write_json(JAVA / "pack.mcmeta", {"pack": {"pack_format": 88, "description": "Nemeton + Faithful 32x — Vanilla+ crossplay"}})
-    icon("root_essence").save(JAVA / "pack.png")
+    save_icon(styled_icon("root_essence", base_root), JAVA / "pack.png")
     for name, data in ITEMS.items():
-        icon(name).save(JAVA / "assets" / "nemeton" / "textures" / "item" / f"{name}.png")
+        save_icon(styled_icon(name, base_root), JAVA / "assets" / "nemeton" / "textures" / "item" / f"{name}.png")
         write_json(JAVA / "assets" / "nemeton" / "models" / "item" / f"{name}.json", {
             "parent": data["java_parent"],
             "textures": {"layer0": f"nemeton:item/{name}"}
@@ -234,20 +174,20 @@ def build_java() -> None:
 
 def build_bedrock() -> None:
     ensure_clean(BEDROCK)
-    icon("root_essence").save(BEDROCK / "pack_icon.png")
+    shutil.copy2(JAVA / "pack.png", BEDROCK / "pack_icon.png")
     write_json(BEDROCK / "manifest.json", {
         "format_version": 2,
         "header": {
             "name": "Nemeton + Faithful 32x",
             "description": "Texturas completas Vanilla+ e itens Nemeton para Bedrock via Geyser.",
             "uuid": "8953d48d-9bd4-4c62-bf43-1b186aa73f76",
-            "version": [1, 1, 0],
+            "version": [1, 1, 1],
             "min_engine_version": [1, 21, 130]
         },
         "modules": [{
             "type": "resources",
             "uuid": "cde0d758-04f3-44ac-9a55-8aed325c930c",
-            "version": [1, 1, 0]
+            "version": [1, 1, 1]
         }],
         "metadata": {
             "authors": ["Nemeton contributors", "Vattic", "Faithful Team"],
@@ -258,7 +198,9 @@ def build_bedrock() -> None:
     })
     texture_data = {}
     for name, data in ITEMS.items():
-        icon(name).save(BEDROCK / "textures" / "items" / f"{name}.png")
+        destination = BEDROCK / "textures" / "items" / f"{name}.png"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(JAVA / "assets" / "nemeton" / "textures" / "item" / f"{name}.png", destination)
         texture_data[data["bedrock_icon"]] = {"textures": f"textures/items/{name}"}
     write_json(BEDROCK / "textures" / "item_texture.json", {
         "resource_pack_name": "nemeton",
@@ -306,15 +248,16 @@ def zip_dir(source: Path, destination: Path) -> str:
 
 
 def main() -> None:
-    build_java()
-    build_bedrock()
-    build_geyser_mapping()
     java_archive = download(FAITHFUL_JAVA_URL, CACHE / f"faithful-java-{FAITHFUL_JAVA_SHA}.zip")
     bedrock_archive = download(FAITHFUL_BEDROCK_URL, CACHE / f"faithful-bedrock-{FAITHFUL_BEDROCK_SHA}.zip")
     stage_archive(java_archive, JAVA_STAGING)
     stage_archive(bedrock_archive, BEDROCK_STAGING)
+    build_java(JAVA_STAGING)
+    build_bedrock()
+    build_geyser_mapping()
     merge_overlay(JAVA, JAVA_STAGING)
     merge_overlay(BEDROCK, BEDROCK_STAGING)
+    remove_overlong_paths(BEDROCK_STAGING)
     DIST.mkdir(parents=True, exist_ok=True)
     RUNTIME.mkdir(parents=True, exist_ok=True)
     java_hash = zip_dir(JAVA_STAGING, DIST / "Nemeton-Java.zip")

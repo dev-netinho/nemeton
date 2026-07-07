@@ -7,7 +7,7 @@ Por isso, mods Forge/Fabric que exigem servidor modded não entram diretamente n
 
 - `NemetonCore`: plugin Java próprio com clãs, claims, trocas, mochila, lápide, mapa e Nemeton+.
 - Datapacks Vanilla+: estruturas em chunks novos sem blocos customizados.
-- Visual vanilla-safe: armaduras com trims, brilho, raridade e `customModelData` já marcado para o pack futuro.
+- Visual Vanilla+: Faithful 32x cobre blocos, entidades, interfaces e itens do jogo; os itens Nemeton usam modelos e sprites próprios equivalentes nos dois clientes.
 - Forms Bedrock via Floodgate/Cumulus para NPCs, `/mods` e trocas, com chat como fallback.
 - Resource packs próprios: `resourcepacks/nemeton-java` e `resourcepacks/nemeton-bedrock`.
 - Zips públicos em `resourcepacks/dist/`: `Nemeton-Java.zip` e `Nemeton-Bedrock.mcpack`.
@@ -25,10 +25,11 @@ Não existe um único arquivo de textura que seja nativo para Java e Bedrock ao 
 Para reconstruir:
 
 ```bash
+python3 -m pip install -r requirements-resourcepacks.txt
 scripts/build-resource-packs.py
 ```
 
-O SHA-1 atual do pack Java é registrado em `resourcepacks/dist/Nemeton-Java.sha1` e em `resource-pack.java-sha1`. O gerador baixa os commits fixados, monta os packs completos e aplica os modelos Nemeton.
+O SHA-1 atual do pack Java é registrado em `resourcepacks/dist/Nemeton-Java.sha1` e em `resource-pack.java-sha1`. O gerador baixa os commits fixados, monta os packs completos e aplica os modelos Nemeton. Espada e machado são marcados como itens de mão no mapeamento Geyser; os sprites autorais preservam a silhueta 32x para evitar planos gigantes ou a textura preta/rosa de arquivo ausente.
 
 ## Nemeton+ alpha
 
@@ -68,8 +69,8 @@ Bedrock não carrega mods Java. Para orientação, o servidor oferece:
 
 Custom items bonitos para Bedrock usam resource pack Bedrock + mapeamento do Geyser. O primeiro pack já cobre Essência do Nemeton, Lâmina, Machado, Peitoral Sentinela, Coração Abissal, Coração do Fim e Mochila.
 
-## Próximo passo de textura
+## Evolução visual futura
 
-1. Evoluir os ícones para modelos 3D/armaduras completas.
+1. Evoluir itens especiais selecionados para modelos 3D, sem tornar o download obrigatório pesado.
 2. Criar variações de armadura por trim ou por item model quando Bedrock suportar bem.
 3. Testar login Java e Bedrock numa cópia antes de forçar o pack Java.

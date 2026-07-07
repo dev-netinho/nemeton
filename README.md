@@ -31,6 +31,13 @@ Requisitos: Java 21 ou mais recente, `curl` e `tar`. Maven é baixado localmente
 
 O JAR sombreado é gerado em `target/`.
 
+Para reconstruir os packs visuais completos, instale a dependência de imagem e execute o gerador:
+
+```bash
+python3 -m pip install -r requirements-resourcepacks.txt
+scripts/build-resource-packs.py
+```
+
 ## Perfil beta da VPS
 
 A primeira versão assume a VPS compartilhada atual, então começa conservadora:
