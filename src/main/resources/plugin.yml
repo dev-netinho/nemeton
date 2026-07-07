@@ -58,3 +58,6 @@ permissions:
     default: true
   nemeton.admin:
     default: op
+  nemeton.builder:
+    description: Permite construir manualmente apenas dentro do Nemeton protegido.
+    default: false

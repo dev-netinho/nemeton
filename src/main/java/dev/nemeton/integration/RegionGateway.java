@@ -6,6 +6,7 @@ import com.sk89q.worldedit.math.BlockVector2;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.domains.DefaultDomain;
 import com.sk89q.worldguard.protection.flags.Flags;
+import com.sk89q.worldguard.protection.flags.RegionGroup;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
@@ -36,10 +37,13 @@ public final class RegionGateway {
                     (int) Math.round(settings.hub().centerX() + Math.cos(angle) * radius),
                     (int) Math.round(settings.hub().centerZ() + Math.sin(angle) * radius)));
         }
+        RegionManager manager = manager(world);
+        ProtectedRegion previous = manager.getRegion("nemeton_hub");
         ProtectedPolygonalRegion region = new ProtectedPolygonalRegion(
                 "nemeton_hub", points, world.getMinHeight(), world.getMaxHeight());
         region.setPriority(100);
         region.setFlag(Flags.BUILD, StateFlag.State.DENY);
+        region.setFlag(Flags.BUILD.getRegionGroupFlag(), RegionGroup.NON_MEMBERS);
         region.setFlag(Flags.PVP, StateFlag.State.DENY);
         region.setFlag(Flags.TNT, StateFlag.State.DENY);
         region.setFlag(Flags.CREEPER_EXPLOSION, StateFlag.State.DENY);
@@ -66,7 +70,10 @@ public final class RegionGateway {
         region.setFlag(Flags.INVINCIBILITY, StateFlag.State.ALLOW);
         region.setFlag(Flags.FALL_DAMAGE, StateFlag.State.DENY);
         region.setFlag(Flags.HUNGER_DRAIN, StateFlag.State.DENY);
-        RegionManager manager = manager(world);
+        if (previous != null) {
+            region.setOwners(previous.getOwners());
+            region.setMembers(previous.getMembers());
+        }
         manager.removeRegion("nemeton_hub");
         manager.addRegion(region);
     }

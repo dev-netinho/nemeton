@@ -18,6 +18,8 @@ Para reconstruir a sinalização da clareira após restaurar o mundo, use `nemet
 
 Citizens `2.0.43-b4211` é dependência obrigatória e fixada por SHA-256 em `scripts/fetch-content.sh`. Atualize apenas depois de testar Java, Bedrock, skins, clique, proteção e persistência numa cópia.
 
+Construção manual no lobby exige as duas condições: ser owner da região WorldGuard `nemeton_hub` e possuir `nemeton.builder`. O `ensureNemeton` preserva owners/members ao recriar a geometria; não conceda bypass global de WorldGuard.
+
 Na alpha atual, o Nemeton fica no mundo `world`, entrada em `16064.5 78.0 -32046.5`, centro protegido em `16064.5 -32064.5` e raio `42`. Antes de mover de novo, use `nemetonadmin avaliar <x> <z> [raio]` para medir água, relevo e biomas.
 
 O datapack Vanilla+ é baixado por `scripts/fetch-content.sh` com versão e SHA-256 fixados. Ele afeta apenas chunks gerados depois de sua ativação.

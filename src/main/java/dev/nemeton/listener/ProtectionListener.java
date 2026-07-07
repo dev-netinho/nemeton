@@ -24,7 +24,7 @@ public final class ProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
         ChunkPos chunk = ChunkPos.of(event.getBlock().getChunk()); Optional<Raid> raid = state.activeRaidAt(chunk);
-        if (claims.isHub(event.getBlock().getLocation())) { event.setCancelled(true); deny(event.getPlayer()); return; }
+        if (claims.isHub(event.getBlock().getLocation()) && !canBuildHub(event.getPlayer())) { event.setCancelled(true); deny(event.getPlayer()); return; }
         if (!claims.canAccess(event.getPlayer().getUniqueId(), chunk)) { event.setCancelled(true); deny(event.getPlayer()); return; }
         if (raid.isPresent()) {
             if (event.getBlock().getState() instanceof TileState) { event.setCancelled(true); event.getPlayer().sendMessage("§cContêineres e blocos especiais são protegidos durante raids."); return; }
@@ -33,7 +33,7 @@ public final class ProtectionListener implements Listener {
     }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (claims.isHub(event.getBlock().getLocation())) { event.setCancelled(true); deny(event.getPlayer()); return; }
+        if (claims.isHub(event.getBlock().getLocation()) && !canBuildHub(event.getPlayer())) { event.setCancelled(true); deny(event.getPlayer()); return; }
         ChunkPos chunk = ChunkPos.of(event.getBlock().getChunk()); if (!claims.canAccess(event.getPlayer().getUniqueId(), chunk)) { event.setCancelled(true); deny(event.getPlayer()); return; }
         state.activeRaidAt(chunk).ifPresent(raid -> raids.recordOriginal(raid, event.getBlock(), event.getBlockReplacedState().getBlockData().getAsString()));
     }
@@ -66,7 +66,7 @@ public final class ProtectionListener implements Listener {
                 claims.isHub(block.getLocation()) || claims.isHub(block.getRelative(event.getDirection()).getLocation()))
                 || state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true);
     }
-    @EventHandler public void onBucket(PlayerBucketEmptyEvent event) { if (claims.isHub(event.getBlock().getLocation()) || state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
+    @EventHandler public void onBucket(PlayerBucketEmptyEvent event) { if ((claims.isHub(event.getBlock().getLocation()) && !canBuildHub(event.getPlayer())) || state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onExplosion(EntityExplodeEvent event) {
         if (claims.isHub(event.getLocation())) { event.setCancelled(true); return; }
@@ -130,4 +130,5 @@ public final class ProtectionListener implements Listener {
         });
     }
     private void deny(Player player) { player.sendActionBar(net.kyori.adventure.text.Component.text("Este território está protegido.")); }
+    private boolean canBuildHub(Player player) { return player.hasPermission("nemeton.builder"); }
 }
