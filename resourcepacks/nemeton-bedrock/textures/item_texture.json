@@ -1,0 +1,27 @@
+{
+  "resource_pack_name": "nemeton",
+  "texture_name": "atlas.items",
+  "texture_data": {
+    "nemeton_root_essence": {
+      "textures": "textures/items/root_essence"
+    },
+    "nemeton_root_blade": {
+      "textures": "textures/items/root_blade"
+    },
+    "nemeton_warden_axe": {
+      "textures": "textures/items/warden_axe"
+    },
+    "nemeton_sentinel_chestplate": {
+      "textures": "textures/items/sentinel_chestplate"
+    },
+    "nemeton_abyss_heart": {
+      "textures": "textures/items/abyss_heart"
+    },
+    "nemeton_end_heart": {
+      "textures": "textures/items/end_heart"
+    },
+    "nemeton_backpack": {
+      "textures": "textures/items/backpack"
+    }
+  }
+}

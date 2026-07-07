@@ -179,11 +179,23 @@ public final class TradeService implements Listener, TabExecutor {
         invites.put(target.getUniqueId(), new Invite(player.getUniqueId(), Instant.now().plus(INVITE_TTL)));
         player.sendMessage("§aPedido de troca enviado para " + target.getName() + ".");
         target.sendMessage("§6" + player.getName() + " quer trocar com você. §f/troca aceitar " + player.getName());
+        if (BedrockForms.isBedrock(target)) {
+            BedrockForms.sendSimple(plugin, target, "Pedido de troca",
+                    player.getName() + " quer trocar com você.",
+                    index -> {
+                        if (index == 0) {
+                            try { acceptInvite(target, new String[]{"aceitar", player.getName()}); }
+                            catch (IllegalArgumentException exception) { target.sendMessage("§c" + exception.getMessage()); }
+                        }
+                    },
+                    "Aceitar", "Agora não");
+        }
     }
 
     private void openExisting(Player player) {
         TradeSession session = sessionsByPlayer.get(player.getUniqueId());
         if (session == null) {
+            if (openBedrockInviteMenu(player)) return;
             usage(player);
             return;
         }
@@ -192,6 +204,30 @@ public final class TradeService implements Listener, TabExecutor {
             return;
         }
         open(player, session);
+    }
+
+    private boolean openBedrockInviteMenu(Player player) {
+        if (!BedrockForms.isBedrock(player)) return false;
+        List<Player> players = Bukkit.getOnlinePlayers().stream()
+                .filter(other -> !other.equals(player))
+                .filter(other -> !sessionsByPlayer.containsKey(other.getUniqueId()))
+                .sorted(Comparator.comparing(Player::getName, String.CASE_INSENSITIVE_ORDER))
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        if (players.isEmpty()) {
+            return BedrockForms.sendSimple(plugin, player, "Troca", "Não há outro jogador livre para trocar agora.",
+                    ignored -> {}, "Fechar");
+        }
+        String[] buttons = new String[players.size() + 1];
+        for (int i = 0; i < players.size(); i++) buttons[i] = "Trocar com " + players.get(i).getName();
+        buttons[buttons.length - 1] = "Fechar";
+        return BedrockForms.sendSimple(plugin, player, "Iniciar troca",
+                "Escolha um jogador online. Depois vocês podem fechar e reabrir a tela sem perder a oferta.",
+                index -> {
+                    if (index >= 0 && index < players.size()) {
+                        try { invite(player, players.get(index).getName()); }
+                        catch (IllegalArgumentException exception) { player.sendMessage("§c" + exception.getMessage()); }
+                    }
+                }, buttons);
     }
 
     private void cancel(Player player) {

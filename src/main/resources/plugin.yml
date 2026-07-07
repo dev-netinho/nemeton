@@ -16,6 +16,10 @@ commands:
   raid:
     description: Declara e acompanha invasões.
     usage: /raid ajuda
+  menu:
+    description: Abre o painel principal do Nemeton, com interface nativa no Bedrock.
+    usage: /menu
+    aliases: [painel]
   nemeton:
     description: Retorna ao Nemeton.
     usage: /nemeton

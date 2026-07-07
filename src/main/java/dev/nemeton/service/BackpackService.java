@@ -1,5 +1,6 @@
 package dev.nemeton.service;
 
+import dev.nemeton.integration.BedrockForms;
 import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.command.*;
@@ -44,6 +45,12 @@ public final class BackpackService implements Listener, TabExecutor {
         }
         ItemStack token = findOwnedToken(player);
         if (token == null) {
+            if (BedrockForms.sendSimple(plugin, player, "Mochila",
+                    "Você ainda não tem mochila.\n\nReceita:\nLinha no topo, couro em volta e baú no centro.\n\nEla é pessoal, tem 27 espaços e continua guardada após a morte.",
+                    ignored -> {},
+                    "Entendi")) {
+                return true;
+            }
             player.sendMessage("§eVocê ainda não tem mochila. Receita: couro em volta de um baú, com uma linha no topo.");
             player.sendMessage("§7A mochila é pessoal, tem 27 espaços e continua guardada mesmo após sua morte.");
             return true;
@@ -142,6 +149,8 @@ public final class BackpackService implements Listener, TabExecutor {
         ItemMeta meta = result.getItemMeta();
         meta.displayName(Component.text("Mochila sem dono"));
         meta.lore(List.of(Component.text("Será vinculada a quem fabricar."), Component.text("Clique direito ou use /mochila.")));
+        meta.setCustomModelData(7110);
+        meta.setItemModel(new NamespacedKey(plugin, "backpack"));
         result.setItemMeta(meta);
         result.editPersistentDataContainer(container -> container.set(tokenKey, PersistentDataType.BYTE, (byte) 1));
 
@@ -157,6 +166,8 @@ public final class BackpackService implements Listener, TabExecutor {
         ItemMeta meta = item.getItemMeta();
         meta.displayName(Component.text("Mochila de " + player.getName()));
         meta.lore(List.of(Component.text("27 espaços pessoais."), Component.text("Clique direito ou use /mochila.")));
+        meta.setCustomModelData(7110);
+        meta.setItemModel(new NamespacedKey(plugin, "backpack"));
         item.setItemMeta(meta);
         item.editPersistentDataContainer(container -> {
             container.set(tokenKey, PersistentDataType.BYTE, (byte) 1);

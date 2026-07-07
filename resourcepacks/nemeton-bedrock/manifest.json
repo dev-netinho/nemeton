@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "header": {
+    "name": "Nemeton Visual Pack",
+    "description": "Texturas Vanilla+ equivalentes para Bedrock via Geyser.",
+    "uuid": "3fc3c31f-1b33-4f85-bd67-ff27bf99e8c4",
+    "version": [
+      1,
+      0,
+      0
+    ],
+    "min_engine_version": [
+      1,
+      21,
+      0
+    ]
+  },
+  "modules": [
+    {
+      "type": "resources",
+      "uuid": "4e173179-f3f1-4e59-8336-ad0ddb2dc54b",
+      "version": [
+        1,
+        0,
+        0
+      ]
+    }
+  ]
+}

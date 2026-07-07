@@ -17,6 +17,8 @@ SMP comunitário Java + Bedrock: um mundo persistente, um centro seguro no próp
 - A mochila pessoal é fabricável, vinculada ao dono e guarda 27 espaços sem aceitar mochilas aninhadas.
 - A clareira possui NPCs interativos em armaduras/poses, formulários Bedrock, textos flutuantes maiores, caminhos cardeais, quatro portais e uma fronteira física alinhada à proteção circular.
 - `Nemeton+` adiciona drops raros de mineração, recompensas de boss, armas/armadura craftáveis, trims/brilho vanilla-safe e guia de mods opcionais em `/mods`.
+- `/menu`/`/painel` abre uma interface principal. No Bedrock, clãs, santuário, raids, guia, Nemeton+ e trocas usam Forms nativas com botões/campos.
+- `resourcepacks/` contém o primeiro Nemeton Visual Pack: Java por URL do GitHub e Bedrock por `.mcpack` servido pelo Geyser, com mapeamento customizado dos itens.
 - `Vanilla+ Structures` 0.1.3 adiciona sete estruturas somente em chunks novos, sem blocos ou itens customizados.
 
 ## Desenvolvimento
@@ -56,9 +58,9 @@ Convide o bot com os escopos `bot` e `applications.commands` e conceda apenas `M
 1. Confirme a posição real do Nemeton em `plugins/NemetonCore/config.yml`; na alpha atual ela é `world 16064.5 78.0 -32046.5`, com centro protegido em `16064.5, -32064.5` e raio `42`.
 2. Configure o cargo `Aprovado`, o vínculo obrigatório e os canais/voz do DiscordSRV.
 3. Teste `/troca` entre Java e Bedrock, incluindo fechar a interface, usar `/troca abrir`, confirmar e cancelar.
-4. Teste `/mapa`, a receita da `/mochila`, `/mods`, `/mods itens` e interação com os NPCs tanto no Java quanto no Bedrock.
+4. Teste `/menu`, `/mapa`, a receita da `/mochila`, `/mods`, `/mods itens` e interação com os NPCs tanto no Java quanto no Bedrock.
 5. Teste `/troca` Java↔Java pela interface e Java↔Bedrock pelo formulário Bedrock; mantenha os comandos seguros como fallback: `/troca oferecer`, `/troca ver`, `/troca aceitar`.
-6. Como OP, use `/mods give` para validar a vitrine Nemeton+.
+6. Como OP, use `/mods give` para validar a vitrine Nemeton+ e confirmar que o pack visual mudou os ícones no Java e no Bedrock.
 7. Comece com pregeneration pequena: `chunky radius 1500`, valide TPS/espaço, depois aumente para `3000` e só então considere `5000`.
 8. Agende `scripts/backup.sh` a cada seis horas e restaure um snapshot em diretório limpo antes do alpha.
 9. Mantenha `war.raids-enabled: false` até duas raids completas passarem no servidor de teste; só então altere para `true`.

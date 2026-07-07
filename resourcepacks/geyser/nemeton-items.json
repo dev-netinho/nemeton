@@ -1,0 +1,82 @@
+{
+  "format_version": 2,
+  "items": {
+    "minecraft:amethyst_shard": [
+      {
+        "type": "legacy",
+        "custom_model_data": 7101,
+        "bedrock_identifier": "nemeton:root_essence",
+        "bedrock_options": {
+          "icon": "nemeton_root_essence"
+        },
+        "display_name": "Essência do Nemeton"
+      }
+    ],
+    "minecraft:diamond_sword": [
+      {
+        "type": "legacy",
+        "custom_model_data": 7102,
+        "bedrock_identifier": "nemeton:root_blade",
+        "bedrock_options": {
+          "icon": "nemeton_root_blade"
+        },
+        "display_name": "Lâmina do Nemeton"
+      }
+    ],
+    "minecraft:diamond_axe": [
+      {
+        "type": "legacy",
+        "custom_model_data": 7103,
+        "bedrock_identifier": "nemeton:warden_axe",
+        "bedrock_options": {
+          "icon": "nemeton_warden_axe"
+        },
+        "display_name": "Machado do Guardião"
+      }
+    ],
+    "minecraft:diamond_chestplate": [
+      {
+        "type": "legacy",
+        "custom_model_data": 7104,
+        "bedrock_identifier": "nemeton:sentinel_chestplate",
+        "bedrock_options": {
+          "icon": "nemeton_sentinel_chestplate"
+        },
+        "display_name": "Peitoral Sentinela"
+      }
+    ],
+    "minecraft:nether_star": [
+      {
+        "type": "legacy",
+        "custom_model_data": 7105,
+        "bedrock_identifier": "nemeton:abyss_heart",
+        "bedrock_options": {
+          "icon": "nemeton_abyss_heart"
+        },
+        "display_name": "Coração Abissal"
+      }
+    ],
+    "minecraft:dragon_breath": [
+      {
+        "type": "legacy",
+        "custom_model_data": 7106,
+        "bedrock_identifier": "nemeton:end_heart",
+        "bedrock_options": {
+          "icon": "nemeton_end_heart"
+        },
+        "display_name": "Coração do Fim"
+      }
+    ],
+    "minecraft:bundle": [
+      {
+        "type": "legacy",
+        "custom_model_data": 7110,
+        "bedrock_identifier": "nemeton:backpack",
+        "bedrock_options": {
+          "icon": "nemeton_backpack"
+        },
+        "display_name": "Mochila do Nemeton"
+      }
+    ]
+  }
+}

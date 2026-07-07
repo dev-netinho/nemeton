@@ -9,10 +9,19 @@ Por isso, mods Forge/Fabric que exigem servidor modded não entram diretamente n
 - Datapacks Vanilla+: estruturas em chunks novos sem blocos customizados.
 - Visual vanilla-safe: armaduras com trims, brilho, raridade e `customModelData` já marcado para o pack futuro.
 - Forms Bedrock via Floodgate/Cumulus para NPCs, `/mods` e trocas, com chat como fallback.
-- Resource packs próprios: um pack Java e um pack Bedrock equivalente.
-- Geyser custom content: mapeia itens customizados para Bedrock.
+- Resource packs próprios: `resourcepacks/nemeton-java` e `resourcepacks/nemeton-bedrock`.
+- Zips públicos em `resourcepacks/dist/`: `Nemeton-Java.zip` e `Nemeton-Bedrock.mcpack`.
+- Geyser custom content: `resourcepacks/geyser/nemeton-items.json` mapeia os itens customizados para Bedrock.
 
-Não existe um único arquivo de textura que seja nativo para Java e Bedrock ao mesmo tempo. O caminho certo é manter dois packs equivalentes no repositório e testar os dois antes de obrigar o download no login.
+Não existe um único arquivo de textura que seja nativo para Java e Bedrock ao mesmo tempo. O caminho certo é manter dois packs equivalentes no repositório: Java recebe o zip por URL e Bedrock recebe o `.mcpack` pela pasta `plugins/Geyser-Spigot/packs`.
+
+Para reconstruir:
+
+```bash
+scripts/build-resource-packs.py
+```
+
+O SHA-1 atual do pack Java é registrado em `resourcepacks/dist/Nemeton-Java.sha1` e em `resource-pack.java-sha1`.
 
 ## Nemeton+ alpha
 
@@ -50,12 +59,10 @@ Bedrock não carrega mods Java. Para orientação, o servidor oferece:
 - mapa web via squaremap
 - mapa nativo preenchido
 
-Custom items bonitos para Bedrock devem ser feitos com resource pack Bedrock + mapeamento do Geyser.
+Custom items bonitos para Bedrock usam resource pack Bedrock + mapeamento do Geyser. O primeiro pack já cobre Essência do Nemeton, Lâmina, Machado, Peitoral Sentinela, Coração Abissal, Coração do Fim e Mochila.
 
 ## Próximo passo de textura
 
-1. Criar pack Java com modelos dos itens Nemeton+.
-2. Gerar pack Bedrock equivalente.
-3. Criar `custom_mappings` do Geyser.
-4. Testar login Java e Bedrock numa cópia.
-5. Só então ativar o pack como recomendado/obrigatório.
+1. Evoluir os ícones para modelos 3D/armaduras completas.
+2. Criar variações de armadura por trim ou por item model quando Bedrock suportar bem.
+3. Testar login Java e Bedrock numa cópia antes de forçar o pack Java.

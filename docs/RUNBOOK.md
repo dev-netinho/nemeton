@@ -5,7 +5,7 @@
 - Verificar `docker compose -f compose.yml ps` e o histórico de alertas.
 - Testar Java em `100.123.99.34:25565` dentro da Tailnet e Bedrock público em `documents-voicing.gl.at.ply.gg:59460`.
 - Confirmar que o `playit` está rodando: `ps -p "$(cat runtime/playit/state/playit.pid)" -o pid,etime,cmd`.
-- Comandos da experiência alpha: `/guia`, `/kit`, `/nemeton`, `/spawn`, `/mapa`, `/mochila`, `/lapide`, `/troca`, `/mods`, `/mods itens`, `/santuario ajuda` e `/clan ajuda`.
+- Comandos da experiência alpha: `/menu`, `/guia`, `/kit`, `/nemeton`, `/spawn`, `/mapa`, `/mochila`, `/lapide`, `/troca`, `/mods`, `/mods itens`, `/santuario ajuda` e `/clan ajuda`.
 - Em troca com Bedrock, evitar a interface Java: o plugin abre formulário nativo quando possível. Se o jogador fechar ou o Floodgate não responder, usar `/troca oferecer [qtd]`, `/troca ver`, `/troca aceitar` e `/troca cancelar`.
 - Rodar `spark healthreport` quando MSPT subir; não instalar plugins de limpeza automática às cegas.
 - Conferir espaço antes de expandir o world border ou pregenerar chunks.
@@ -19,6 +19,8 @@ Para reconstruir a sinalização da clareira após restaurar o mundo, use `nemet
 Na alpha atual, o Nemeton fica no mundo `world`, entrada em `16064.5 78.0 -32046.5`, centro protegido em `16064.5 -32064.5` e raio `42`. Antes de mover de novo, use `nemetonadmin avaliar <x> <z> [raio]` para medir água, relevo e biomas.
 
 O datapack Vanilla+ é baixado por `scripts/fetch-content.sh` com versão e SHA-256 fixados. Ele afeta apenas chunks gerados depois de sua ativação.
+
+O pack visual é gerado por `scripts/build-resource-packs.py`. Publique `resourcepacks/dist/Nemeton-Java.zip` antes de reiniciar o plugin, pois o Java baixa pela URL raw do GitHub. No Bedrock, copie `resourcepacks/dist/Nemeton-Bedrock.mcpack` para `plugins/Geyser-Spigot/packs/` e `resourcepacks/geyser/nemeton-items.json` para `plugins/Geyser-Spigot/custom_mappings/`, depois reinicie o Minecraft/Geyser.
 
 O squaremap escuta apenas em `127.0.0.1:8100`. `scripts/start-map-tunnel.sh` cria um Quick Tunnel isolado (sem ler os túneis Cloudflare dos demais projetos) e grava a URL atual em `plugins/NemetonCore/map-url.txt`, lida dinamicamente por `/mapa`.
 

@@ -54,3 +54,8 @@ discord:
 map:
   # Preenchido quando houver um endereço público permanente para o squaremap.
   public-url: ''
+
+resource-pack:
+  java-url: 'https://raw.githubusercontent.com/dev-netinho/nemeton/main/resourcepacks/dist/Nemeton-Java.zip'
+  java-sha1: '3fc34c3dd90738c008278e1f776d376d73164751'
+  force-java: false

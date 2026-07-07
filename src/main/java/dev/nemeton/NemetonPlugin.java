@@ -31,12 +31,13 @@ public final class NemetonPlugin extends JavaPlugin {
             state.sanctuaries().forEach((chunk, owner) -> regions.createSanctuary(chunk, owner, state.sanctuaryTrustedPlayers(owner)));
             ClanService clans = new ClanService(state, repository, regions, discord, settings); ClaimService claims = new ClaimService(state, repository, regions, clans, settings);
             AllianceService alliances = new AllianceService(state, repository, clans, settings, regions); clans.setMemberChangeHook(alliances::reconcileClan); claims.setAllianceService(alliances); alliances.reconcileAll(); RaidService raids = new RaidService(this, state, repository, regions, discord, settings); this.raidService = raids; raids.setAllianceService(alliances);
-            TeleportService teleports = new TeleportService(this, settings, state); ExperienceService experience = new ExperienceService(this, settings); NemetonCommands commands = new NemetonCommands(settings, state, clans, claims, alliances, raids, teleports, experience, repository);
+            TeleportService teleports = new TeleportService(this, settings, state); ExperienceService experience = new ExperienceService(this, settings); NemetonCommands commands = new NemetonCommands(this, settings, state, clans, claims, alliances, raids, teleports, experience, repository);
             GraveService graves = new GraveService(this); TradeService trades = new TradeService(this); this.tradeService = trades;
             LobbyService lobby = new LobbyService(this, settings); MapService maps = new MapService(this, settings);
             BackpackService backpacks = new BackpackService(this); this.backpackService = backpacks;
             NemetonPlusService plus = new NemetonPlusService(this);
-            registerCommand("clan", commands); registerCommand("santuario", commands); registerCommand("raid", commands); registerCommand("nemeton", commands); registerCommand("guia", commands); registerCommand("kit", commands);
+            ResourcePackService resourcePacks = new ResourcePackService(this);
+            registerCommand("clan", commands); registerCommand("santuario", commands); registerCommand("raid", commands); registerCommand("menu", commands); registerCommand("nemeton", commands); registerCommand("guia", commands); registerCommand("kit", commands);
             registerCommand("lapide", graves); registerCommand("troca", trades);
             registerCommand("mapa", maps); registerCommand("mochila", backpacks);
             registerCommand("mods", plus);
@@ -48,6 +49,7 @@ public final class NemetonPlugin extends JavaPlugin {
             Bukkit.getPluginManager().registerEvents(lobby, this);
             Bukkit.getPluginManager().registerEvents(backpacks, this);
             Bukkit.getPluginManager().registerEvents(plus, this);
+            Bukkit.getPluginManager().registerEvents(resourcePacks, this);
             Bukkit.getPluginManager().registerEvents(new org.bukkit.event.Listener() {
                 @org.bukkit.event.EventHandler public void move(org.bukkit.event.player.PlayerMoveEvent event) { if (event.getTo() != null) teleports.moved(event.getPlayer()); }
                 @org.bukkit.event.EventHandler public void combat(org.bukkit.event.entity.EntityDamageByEntityEvent event) { if (event.getEntity() instanceof org.bukkit.entity.Player victim) teleports.tagCombat(victim.getUniqueId()); if (event.getDamager() instanceof org.bukkit.entity.Player attacker) teleports.tagCombat(attacker.getUniqueId()); }
