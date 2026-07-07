@@ -15,7 +15,7 @@ import java.util.logging.Level;
 
 /** Sends the Java visual pack while Bedrock receives the equivalent pack through Geyser. */
 public final class ResourcePackService implements Listener {
-    private static final String DEFAULT_URL = "https://raw.githubusercontent.com/dev-netinho/nemeton/main/resourcepacks/dist/Nemeton-Java.zip";
+    private static final String DEFAULT_URL = "https://raw.githubusercontent.com/dev-netinho/nemeton/main/resourcepacks/dist/Nemeton-Java.zip?sha1=55c542426ba2d90ed49742df2f1f4716ce31ad7a";
     private static final String DEFAULT_SHA1 = "55c542426ba2d90ed49742df2f1f4716ce31ad7a";
 
     private final JavaPlugin plugin;
