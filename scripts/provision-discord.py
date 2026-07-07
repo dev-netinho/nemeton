@@ -11,6 +11,7 @@ import os
 import pathlib
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -31,14 +32,23 @@ def request(token: str, method: str, path: str, body: object | None = None) -> o
     headers = {"Authorization": f"Bot {token}", "User-Agent": "Nemeton/2.0"}
     if payload is not None:
         headers["Content-Type"] = "application/json"
-    req = urllib.request.Request(API + path, data=payload, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=25) as response:
-            raw = response.read()
-            return None if not raw else json.loads(raw)
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode(errors="replace")
-        raise RuntimeError(f"Discord {method} {path} respondeu {error.code}: {detail}") from error
+    for attempt in range(5):
+        req = urllib.request.Request(API + path, data=payload, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=25) as response:
+                raw = response.read()
+                return None if not raw else json.loads(raw)
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode(errors="replace")
+            if error.code == 429 and attempt < 4:
+                try:
+                    wait = float(json.loads(detail).get("retry_after", 1))
+                except (ValueError, TypeError, json.JSONDecodeError):
+                    wait = 1
+                time.sleep(min(wait + 0.35, 60))
+                continue
+            raise RuntimeError(f"Discord {method} {path} respondeu {error.code}: {detail}") from error
+    raise RuntimeError(f"Discord {method} {path} excedeu o limite de tentativas")
 
 
 def overwrite(target_id: str, allow: int = 0, deny: int = 0, target_type: int = 0) -> dict:
