@@ -8,14 +8,16 @@ database:
 
 nemeton:
   world: world
-  x: 0.5
-  y: 80.0
-  z: 0.5
-  yaw: 0.0
+  x: 22032.5
+  y: 67.0
+  z: -12375.5
+  yaw: 180.0
   pitch: 0.0
-  radius: 128
-  teleport-warmup-seconds: 10
-  teleport-cooldown-minutes: 30
+  center-x: 22032.5
+  center-z: -12400.5
+  radius: 64
+  teleport-warmup-seconds: 3
+  teleport-cooldown-minutes: 5
 
 claims:
   sanctuary-limit: 4
@@ -25,6 +27,7 @@ claims:
   war-bonus-percent: 25
 
 war:
+  raids-enabled: false
   activation-hours: 72
   minimum-active-days: 7
   truce-hours: 72
@@ -48,3 +51,6 @@ discord:
   approved-role-id: ''
   intrusion-cooldown-minutes: 10
 
+map:
+  # Preenchido quando houver um endereço público permanente para o squaremap.
+  public-url: ''

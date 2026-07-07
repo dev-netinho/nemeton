@@ -1,5 +1,6 @@
 package dev.nemeton.command;
 
+import dev.nemeton.config.Settings;
 import dev.nemeton.domain.*;
 import dev.nemeton.persistence.NemetonRepository;
 import dev.nemeton.service.*;
@@ -18,10 +19,10 @@ import java.util.*;
 public final class NemetonCommands implements TabExecutor {
     private static final ZoneId ZONE = ZoneId.of("America/Belem");
     private static final DateTimeFormatter SLOT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
-    private final ServerState state; private final ClanService clans; private final ClaimService claims; private final AllianceService alliances;
-    private final RaidService raids; private final TeleportService teleports; private final NemetonRepository repository;
-    public NemetonCommands(ServerState state, ClanService clans, ClaimService claims, AllianceService alliances, RaidService raids, TeleportService teleports, NemetonRepository repository) {
-        this.state = state; this.clans = clans; this.claims = claims; this.alliances = alliances; this.raids = raids; this.teleports = teleports; this.repository = repository;
+    private final Settings settings; private final ServerState state; private final ClanService clans; private final ClaimService claims; private final AllianceService alliances;
+    private final RaidService raids; private final TeleportService teleports; private final ExperienceService experience; private final NemetonRepository repository;
+    public NemetonCommands(Settings settings, ServerState state, ClanService clans, ClaimService claims, AllianceService alliances, RaidService raids, TeleportService teleports, ExperienceService experience, NemetonRepository repository) {
+        this.settings = settings; this.state = state; this.clans = clans; this.claims = claims; this.alliances = alliances; this.raids = raids; this.teleports = teleports; this.experience = experience; this.repository = repository;
     }
 
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -31,7 +32,9 @@ public final class NemetonCommands implements TabExecutor {
                 case "clan" -> clan(player, args);
                 case "santuario" -> sanctuary(player, args);
                 case "raid" -> raid(player, args);
-                case "nemeton" -> teleports.request(player);
+                case "nemeton", "spawn" -> teleports.request(player);
+                case "guia" -> experience.giveGuide(player, false);
+                case "kit" -> experience.claimStarterKit(player);
                 default -> { return false; }
             }
         } catch (IllegalArgumentException | DateTimeException exception) { player.sendMessage("§c" + exception.getMessage()); }
@@ -50,7 +53,7 @@ public final class NemetonCommands implements TabExecutor {
             case "promover" -> { requireArgs(args, 2); clans.promote(ownClan(player), player.getUniqueId(), Bukkit.getOfflinePlayer(args[1]).getUniqueId()); player.sendMessage("§aCargo atualizado."); }
             case "claim" -> { claims.claim(ownClan(player), player.getUniqueId(), ChunkPos.of(player.getChunk())); player.sendMessage("§aChunk reivindicado."); }
             case "unclaim" -> { claims.unclaim(ownClan(player), player.getUniqueId(), ChunkPos.of(player.getChunk())); player.sendMessage("§eClaim removido."); }
-            case "guerra" -> { requireArgs(args, 2); clans.setWar(ownClan(player), player.getUniqueId(), args[1].equalsIgnoreCase("ativar")); player.sendMessage("§eEstado de guerra atualizado."); }
+            case "guerra" -> { requireArgs(args, 2); boolean enable = args[1].equalsIgnoreCase("ativar"); if (enable) requireRaidsEnabled(); clans.setWar(ownClan(player), player.getUniqueId(), enable); player.sendMessage("§eEstado de guerra atualizado."); }
             case "cofre" -> coffer(player, args);
             case "aliar" -> { requireArgs(args, 2); Clan source = ownClan(player), target = clanTag(args[1]); Alliance alliance = alliances.requestOrAccept(source, target, player.getUniqueId()); player.sendMessage(alliance.status() == Alliance.Status.ACTIVE ? "§aAliança firmada." : "§ePedido de aliança enviado."); }
             case "romper" -> { requireArgs(args, 2); alliances.breakAlliance(ownClan(player), clanTag(args[1]), player.getUniqueId()); player.sendMessage("§eAliança rompida; trégua iniciada."); }
@@ -86,10 +89,10 @@ public final class NemetonCommands implements TabExecutor {
     }
 
     private void raid(Player player, String[] args) {
-        if (args.length == 0 || args[0].equalsIgnoreCase("ajuda")) { player.sendMessage("§6/raid declarar <tag> <diamantes> <data1> <data2> <data3> | agendar <id> <1|2|3> | status [id] | premio"); player.sendMessage("§7Data: 2026-07-08T20:00 (horário de Belém)"); return; }
+        if (args.length == 0 || args[0].equalsIgnoreCase("ajuda")) { player.sendMessage("§6/raid declarar <tag> <diamantes> <data1> <data2> <data3> | agendar <id> <1|2|3> | status [id] | premio"); player.sendMessage(settings.war().raidsEnabled() ? "§7Data: 2026-07-08T20:00 (horário de Belém)" : "§eRaids estão desativadas neste alpha."); return; }
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "declarar" -> { requireArgs(args, 6); Clan attacker = ownClan(player), defender = clanTag(args[1]); int stake = Integer.parseInt(args[2]); List<Instant> slots = List.of(parseSlot(args[3]), parseSlot(args[4]), parseSlot(args[5])); Raid created = raids.declare(attacker, defender, player.getUniqueId(), stake, slots); player.sendMessage("§aRaid declarada: " + RaidService.shortId(created.id())); }
-            case "agendar" -> { requireArgs(args, 3); Raid selected = raidId(args[1]); raids.schedule(selected, ownClan(player), player.getUniqueId(), Integer.parseInt(args[2])); player.sendMessage("§aHorário confirmado."); }
+            case "declarar" -> { requireRaidsEnabled(); requireArgs(args, 6); Clan attacker = ownClan(player), defender = clanTag(args[1]); int stake = Integer.parseInt(args[2]); List<Instant> slots = List.of(parseSlot(args[3]), parseSlot(args[4]), parseSlot(args[5])); Raid created = raids.declare(attacker, defender, player.getUniqueId(), stake, slots); player.sendMessage("§aRaid declarada: " + RaidService.shortId(created.id())); }
+            case "agendar" -> { requireRaidsEnabled(); requireArgs(args, 3); Raid selected = raidId(args[1]); raids.schedule(selected, ownClan(player), player.getUniqueId(), Integer.parseInt(args[2])); player.sendMessage("§aHorário confirmado."); }
             case "status" -> { Raid selected = args.length >= 2 ? raidId(args[1]) : state.clanOf(player.getUniqueId()).flatMap(c -> state.activeRaidForClan(c.id())).orElseThrow(() -> new IllegalArgumentException("Nenhuma raid encontrada.")); player.sendMessage("§6Raid " + RaidService.shortId(selected.id()) + " §7— " + selected.state() + ", captura: " + selected.captureSeconds() + "s, início: " + selected.startsAt()); }
             case "premio" -> player.sendMessage("§ePrêmios de raid são creditados diretamente no cofre do clã vencedor.");
             default -> throw new IllegalArgumentException("Subcomando de raid desconhecido.");
@@ -100,6 +103,7 @@ public final class NemetonCommands implements TabExecutor {
     private Clan clanTag(String tag) { return state.clanByTag(tag).orElseThrow(() -> new IllegalArgumentException("Clã não encontrado.")); }
     private Raid raidId(String id) { return raids.byShortId(id).orElseThrow(() -> new IllegalArgumentException("Raid não encontrada.")); }
     private Instant parseSlot(String text) { return LocalDateTime.parse(text, SLOT_FORMAT).atZone(ZONE).toInstant(); }
+    private void requireRaidsEnabled() { if (!settings.war().raidsEnabled()) throw new IllegalArgumentException("Raids e modo de guerra estão desativados neste alpha."); }
     private void requireArgs(String[] args, int count) { if (args.length < count) throw new IllegalArgumentException("Argumentos insuficientes. Use o comando de ajuda."); }
     private int count(Player player, Material type) { return Arrays.stream(player.getInventory().getContents()).filter(Objects::nonNull).filter(i -> i.getType() == type).mapToInt(ItemStack::getAmount).sum(); }
     private void remove(Player player, Material type, int amount) { int left = amount; for (ItemStack item : player.getInventory().getContents()) { if (item == null || item.getType() != type) continue; int take = Math.min(left, item.getAmount()); item.setAmount(item.getAmount() - take); left -= take; if (left == 0) return; } }

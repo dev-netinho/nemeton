@@ -20,13 +20,16 @@ public record Settings(Database database, Hub hub, Claims claims, War war, Disco
         Hub hub = new Hub(config.getString("nemeton.world", "world"), config.getDouble("nemeton.x", .5),
                 config.getDouble("nemeton.y", 80), config.getDouble("nemeton.z", .5),
                 (float) config.getDouble("nemeton.yaw", 0), (float) config.getDouble("nemeton.pitch", 0),
+                config.getDouble("nemeton.center-x", config.getDouble("nemeton.x", .5)),
+                config.getDouble("nemeton.center-z", config.getDouble("nemeton.z", .5)),
                 config.getInt("nemeton.radius", 128),
-                Duration.ofSeconds(config.getLong("nemeton.teleport-warmup-seconds", 10)),
-                Duration.ofMinutes(config.getLong("nemeton.teleport-cooldown-minutes", 30)));
+                Duration.ofSeconds(config.getLong("nemeton.teleport-warmup-seconds", 3)),
+                Duration.ofMinutes(config.getLong("nemeton.teleport-cooldown-minutes", 5)));
         Claims claims = new Claims(config.getInt("claims.sanctuary-limit", 4), config.getInt("claims.clan-base", 6),
                 config.getInt("claims.clan-per-member", 4), config.getInt("claims.clan-maximum", 50),
                 config.getInt("claims.war-bonus-percent", 25));
-        War war = new War(Duration.ofHours(config.getLong("war.activation-hours", 72)),
+        War war = new War(config.getBoolean("war.raids-enabled", false),
+                Duration.ofHours(config.getLong("war.activation-hours", 72)),
                 Duration.ofDays(config.getLong("war.minimum-active-days", 7)),
                 Duration.ofHours(config.getLong("war.truce-hours", 72)),
                 Duration.ofHours(config.getLong("war.declaration-minimum-hours", 24)),
@@ -55,13 +58,13 @@ public record Settings(Database database, Hub hub, Claims claims, War war, Disco
     public record Database(String host, int port, String name, String username, String password, int poolSize) {
         public String jdbcUrl() { return "jdbc:mariadb://" + host + ":" + port + "/" + name + "?useUnicode=true&characterEncoding=utf8"; }
     }
-    public record Hub(String world, double x, double y, double z, float yaw, float pitch, int radius,
+    public record Hub(String world, double x, double y, double z, float yaw, float pitch,
+                      double centerX, double centerZ, int radius,
                       Duration warmup, Duration cooldown) {}
     public record Claims(int sanctuaryLimit, int clanBase, int clanPerMember, int clanMaximum, int warBonusPercent) {}
-    public record War(Duration activation, Duration minimumActive, Duration truce, Duration declarationMinimum,
+    public record War(boolean raidsEnabled, Duration activation, Duration minimumActive, Duration truce, Duration declarationMinimum,
                       Duration declarationMaximum, Duration choiceWindow, Duration duration, int captureSeconds,
                       int deathLockSeconds, int minimumTeam, int maximumTeam, int minimumStake, int maximumStake) {}
     public record Discord(boolean enabled, String guildId, String botToken, String clansCategoryId,
                           String alertsChannelId, String approvedRoleId, Duration intrusionCooldown) {}
 }
-

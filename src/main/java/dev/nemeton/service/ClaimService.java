@@ -56,11 +56,11 @@ public final class ClaimService {
     }
     public boolean isHub(Location location) {
         if (!location.getWorld().getName().equals(settings.hub().world())) return false;
-        double dx = location.getX() - settings.hub().x(), dz = location.getZ() - settings.hub().z(); return dx * dx + dz * dz <= settings.hub().radius() * settings.hub().radius();
+        double dx = location.getX() - settings.hub().centerX(), dz = location.getZ() - settings.hub().centerZ(); return dx * dx + dz * dz <= settings.hub().radius() * settings.hub().radius();
     }
     private void ensureOutsideHub(ChunkPos chunk) {
         if (!chunk.world().equals(settings.hub().world())) throw new IllegalArgumentException("Claims só são permitidos no Overworld principal.");
-        int centerX = ((int) settings.hub().x()) >> 4, centerZ = ((int) settings.hub().z()) >> 4, radius = settings.hub().radius() / 16 + 1;
+        int centerX = ((int) settings.hub().centerX()) >> 4, centerZ = ((int) settings.hub().centerZ()) >> 4, radius = settings.hub().radius() / 16 + 1;
         if (Math.abs(chunk.x() - centerX) <= radius && Math.abs(chunk.z() - centerZ) <= radius) throw new IllegalArgumentException("Não é possível proteger terreno perto do Nemeton.");
     }
     private boolean connected(Set<ChunkPos> chunks) {

@@ -19,10 +19,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: ${DB_MEMORY_LIMIT:-768M}
 
   minecraft:
-    image: itzg/minecraft-server:java21
+    image: ${MC_IMAGE:-itzg/minecraft-server:java25}
     restart: unless-stopped
     depends_on:
       database:
@@ -30,18 +30,20 @@ services:
     ports:
       - "25565:25565/tcp"
       - "19132:19132/udp"
+      - "127.0.0.1:8100:8080/tcp"
     environment:
       EULA: "TRUE"
       TYPE: PAPER
-      VERSION: "1.21.11"
-      MEMORY: 8G
-      INIT_MEMORY: 2G
+      VERSION: ${MC_VERSION:-1.21.11}
+      MEMORY: ${MC_MEMORY:-4G}
+      INIT_MEMORY: ${MC_INIT_MEMORY:-1G}
       USE_AIKAR_FLAGS: "true"
       ONLINE_MODE: "true"
       ENFORCE_SECURE_PROFILE: "true"
-      VIEW_DISTANCE: 8
-      SIMULATION_DISTANCE: 6
-      MAX_PLAYERS: 30
+      VIEW_DISTANCE: ${MC_VIEW_DISTANCE:-7}
+      SIMULATION_DISTANCE: ${MC_SIMULATION_DISTANCE:-5}
+      MAX_PLAYERS: ${MC_MAX_PLAYERS:-15}
+      ALLOW_FLIGHT: "true"
       ENABLE_RCON: "true"
       RCON_PASSWORD: ${RCON_PASSWORD}
       MOTD: "Nemeton — survival comunitário Java + Bedrock"
@@ -53,10 +55,13 @@ services:
       DB_USER: ${DB_USER:-nemeton}
       DB_PASSWORD: ${DB_PASSWORD}
       DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
-      MODRINTH_PROJECTS: "geyser,floodgate,viaversion,discordsrv,luckperms,worldedit,worldguard,coreprotect,shopkeepers,chunky,spark"
+      PLUGINS: /extras/plugins
+      # Geyser/Floodgate and spark are installed manually because their Modrinth resolution is not reliable for 1.21.11 today.
+      MODRINTH_PROJECTS: "viaversion,discordsrv,luckperms,worldedit,worldguard,coreprotect,chunky,squaremap"
     volumes:
       - ./data/minecraft:/data
-      - ./runtime/plugins:/plugins:ro
+      - ./runtime/plugins:/extras/plugins:ro
+      - ./runtime/datapacks/Vanilla+_structures.zip:/data/world/datapacks/Vanilla+_structures.zip:ro
     healthcheck:
       test: ["CMD", "mc-health"]
       start_period: 2m
@@ -66,4 +71,4 @@ services:
     deploy:
       resources:
         limits:
-          memory: 10G
+          memory: ${MC_MEMORY_LIMIT:-5G}

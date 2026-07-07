@@ -1,31 +1,57 @@
 package dev.nemeton.listener;
 
 import dev.nemeton.config.Settings;
+import dev.nemeton.service.ExperienceService;
 import dev.nemeton.service.RaidService;
 import org.bukkit.*;
-import org.bukkit.entity.Player;
 import org.bukkit.event.*;
 import org.bukkit.event.player.*;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BookMeta;
-import net.kyori.adventure.text.Component;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public final class PlayerListener implements Listener {
-    private final Settings settings; private final RaidService raids;
-    public PlayerListener(Settings settings, RaidService raids) { this.settings = settings; this.raids = raids; }
+    private static final double LEGACY_HUB_X = 3136.5;
+    private static final double LEGACY_HUB_Z = -6029.5;
+    private static final double LEGACY_MIGRATION_RADIUS_SQUARED = 256.0 * 256.0;
 
-    @EventHandler public void onFirstJoin(PlayerJoinEvent event) {
-        if (event.getPlayer().hasPlayedBefore()) return; Player player = event.getPlayer(); World world = Bukkit.getWorld(settings.hub().world());
-        if (world != null) player.teleportAsync(new Location(world, settings.hub().x(), settings.hub().y(), settings.hub().z(), settings.hub().yaw(), settings.hub().pitch()));
-        ItemStack guide = new ItemStack(Material.WRITTEN_BOOK); BookMeta meta = (BookMeta) guide.getItemMeta(); meta.title(Component.text("Guia do Nemeton")); meta.author(Component.text("A comunidade"));
-        meta.addPages(Component.text("Bem-vindo ao Nemeton.\n\n/clan ajuda\n/santuario ajuda\n/raid ajuda\n/nemeton\n\nO mundo é persistente. Respeite as construções e negocie na praça.")); guide.setItemMeta(meta); player.getInventory().addItem(guide);
+    private final JavaPlugin plugin; private final Settings settings; private final RaidService raids; private final ExperienceService experience;
+    public PlayerListener(JavaPlugin plugin, Settings settings, RaidService raids, ExperienceService experience) {
+        this.plugin = plugin; this.settings = settings; this.raids = raids; this.experience = experience;
+    }
+
+    @EventHandler public void onJoin(PlayerJoinEvent event) {
+        if (!event.getPlayer().hasPlayedBefore()) {
+            experience.firstJoin(event.getPlayer());
+            return;
+        }
+        Location hub = hubLocation();
+        Location current = event.getPlayer().getLocation();
+        if (hub != null && current.getWorld() != null && current.getWorld().equals(hub.getWorld())
+                && horizontalDistanceSquared(current, LEGACY_HUB_X, LEGACY_HUB_Z) <= LEGACY_MIGRATION_RADIUS_SQUARED) {
+            event.getPlayer().teleportAsync(hub).thenRun(() ->
+                    Bukkit.getScheduler().runTask(plugin, () -> experience.welcome(event.getPlayer())));
+            return;
+        }
+        experience.welcome(event.getPlayer());
     }
     @EventHandler public void onRespawn(PlayerRespawnEvent event) {
-        raids.respawnLock(event.getPlayer().getUniqueId()).ifPresent(until -> {
-            World world = Bukkit.getWorld(settings.hub().world());
-            if (world != null) event.setRespawnLocation(new Location(world, settings.hub().x(), settings.hub().y(), settings.hub().z()));
+        Location hub = hubLocation();
+        if (hub != null) event.setRespawnLocation(hub);
+
+        raids.respawnLock(event.getPlayer().getUniqueId()).ifPresentOrElse(until -> {
             event.getPlayer().sendMessage("§eVocê retornará à raid após " + Math.max(1, java.time.Duration.between(java.time.Instant.now(), until).toSeconds()) + " segundos.");
             raids.returnAfterLock(event.getPlayer());
-        });
+        }, () -> event.getPlayer().sendMessage("§6Você renasceu no §eNemeton§6."));
+    }
+
+    private Location hubLocation() {
+        World world = Bukkit.getWorld(settings.hub().world());
+        if (world == null) return null;
+        return new Location(world, settings.hub().x(), settings.hub().y(), settings.hub().z(), settings.hub().yaw(), settings.hub().pitch());
+    }
+
+    private double horizontalDistanceSquared(Location location, double x, double z) {
+        double dx = location.getX() - x;
+        double dz = location.getZ() - z;
+        return dx * dx + dz * dz;
     }
 }

@@ -2,19 +2,23 @@ package dev.nemeton.integration;
 
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.math.BlockVector3;
+import com.sk89q.worldedit.math.BlockVector2;
 import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.domains.DefaultDomain;
 import com.sk89q.worldguard.protection.flags.Flags;
 import com.sk89q.worldguard.protection.flags.StateFlag;
 import com.sk89q.worldguard.protection.managers.RegionManager;
-import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion;
+import com.sk89q.worldguard.protection.regions.ProtectedPolygonalRegion;
 import dev.nemeton.config.Settings;
 import dev.nemeton.domain.ChunkPos;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 
 import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public final class RegionGateway {
@@ -25,9 +29,15 @@ public final class RegionGateway {
         World world = Bukkit.getWorld(settings.hub().world());
         if (world == null) return;
         int radius = settings.hub().radius();
-        ProtectedCuboidRegion region = new ProtectedCuboidRegion("nemeton_hub",
-                BlockVector3.at((int) settings.hub().x() - radius, world.getMinHeight(), (int) settings.hub().z() - radius),
-                BlockVector3.at((int) settings.hub().x() + radius, world.getMaxHeight(), (int) settings.hub().z() + radius));
+        List<BlockVector2> points = new ArrayList<>();
+        for (int index = 0; index < 32; index++) {
+            double angle = Math.PI * 2 * index / 32.0;
+            points.add(BlockVector2.at(
+                    (int) Math.round(settings.hub().centerX() + Math.cos(angle) * radius),
+                    (int) Math.round(settings.hub().centerZ() + Math.sin(angle) * radius)));
+        }
+        ProtectedPolygonalRegion region = new ProtectedPolygonalRegion(
+                "nemeton_hub", points, world.getMinHeight(), world.getMaxHeight());
         region.setPriority(100);
         region.setFlag(Flags.BUILD, StateFlag.State.DENY);
         region.setFlag(Flags.PVP, StateFlag.State.DENY);
@@ -35,7 +45,9 @@ public final class RegionGateway {
         region.setFlag(Flags.CREEPER_EXPLOSION, StateFlag.State.DENY);
         region.setFlag(Flags.OTHER_EXPLOSION, StateFlag.State.DENY);
         region.setFlag(Flags.MOB_DAMAGE, StateFlag.State.DENY);
-        manager(world).addRegion(region);
+        RegionManager manager = manager(world);
+        manager.removeRegion("nemeton_hub");
+        manager.addRegion(region);
     }
 
     public void createSanctuary(ChunkPos chunk, UUID owner, Collection<UUID> trusted) {
@@ -94,4 +106,3 @@ public final class RegionGateway {
     private String clanRegionId(ChunkPos chunk) { return "clan_" + chunk.regionSuffix(); }
     private String raidRegionId(UUID raid, ChunkPos chunk) { return "raid_" + raid.toString().substring(0, 8) + "_" + chunk.regionSuffix(); }
 }
-

@@ -5,7 +5,7 @@ api-version: '1.21.11'
 authors: [Nemeton]
 description: Clans, sanctuaries, claims and reversible raids for a community SMP.
 depend: [WorldGuard]
-softdepend: [CoreProtect, DiscordSRV, floodgate, Shopkeepers]
+softdepend: [CoreProtect, DiscordSRV, floodgate, squaremap]
 commands:
   clan:
     description: Gerencia clãs, claims, alianças e o cofre.
@@ -19,6 +19,32 @@ commands:
   nemeton:
     description: Retorna ao Nemeton.
     usage: /nemeton
+    aliases: [spawn]
+  guia:
+    description: Recebe novamente o guia do Nemeton.
+    usage: /guia
+  kit:
+    description: Recebe uma vez o kit inicial da alpha.
+    usage: /kit
+  lapide:
+    description: Mostra a última lápide e aponta a bússola.
+    usage: /lapide
+  troca:
+    description: Troca segura de itens entre jogadores.
+    usage: /troca <jogador>
+    aliases: [comercio]
+  mapa:
+    description: Entrega o mapa nativo e informa o mapa ao vivo.
+    usage: /mapa
+    aliases: [minimapa]
+  mochila:
+    description: Abre sua mochila pessoal fabricável.
+    usage: /mochila
+    aliases: [backpack]
+  nemetonadmin:
+    description: Manutenção visual e interativa do Nemeton.
+    usage: /nemetonadmin construir|npcs|status
+    permission: nemeton.admin
 permissions:
   nemeton.player:
     default: true

@@ -23,6 +23,7 @@ public final class ProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
         ChunkPos chunk = ChunkPos.of(event.getBlock().getChunk()); Optional<Raid> raid = state.activeRaidAt(chunk);
+        if (claims.isHub(event.getBlock().getLocation())) { event.setCancelled(true); deny(event.getPlayer()); return; }
         if (!claims.canAccess(event.getPlayer().getUniqueId(), chunk)) { event.setCancelled(true); deny(event.getPlayer()); return; }
         if (raid.isPresent()) {
             if (event.getBlock().getState() instanceof TileState) { event.setCancelled(true); event.getPlayer().sendMessage("§cContêineres e blocos especiais são protegidos durante raids."); return; }
@@ -31,6 +32,7 @@ public final class ProtectionListener implements Listener {
     }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
+        if (claims.isHub(event.getBlock().getLocation())) { event.setCancelled(true); deny(event.getPlayer()); return; }
         ChunkPos chunk = ChunkPos.of(event.getBlock().getChunk()); if (!claims.canAccess(event.getPlayer().getUniqueId(), chunk)) { event.setCancelled(true); deny(event.getPlayer()); return; }
         state.activeRaidAt(chunk).ifPresent(raid -> raids.recordOriginal(raid, event.getBlock(), event.getBlockReplacedState().getBlockData().getAsString()));
     }
@@ -53,14 +55,19 @@ public final class ProtectionListener implements Listener {
     @EventHandler public void onSpread(BlockSpreadEvent event) { if (state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
     @EventHandler public void onPiston(BlockPistonExtendEvent event) { if (state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
     @EventHandler public void onPiston(BlockPistonRetractEvent event) { if (state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
-    @EventHandler public void onBucket(PlayerBucketEmptyEvent event) { if (state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
+    @EventHandler public void onBucket(PlayerBucketEmptyEvent event) { if (claims.isHub(event.getBlock().getLocation()) || state.activeRaidAt(ChunkPos.of(event.getBlock().getChunk())).isPresent()) event.setCancelled(true); }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onExplosion(EntityExplodeEvent event) {
         event.blockList().removeIf(block -> {
+            if (claims.isHub(block.getLocation())) return true;
             ChunkPos chunk = ChunkPos.of(block.getChunk()); Optional<Raid> raid = state.activeRaidAt(chunk);
             if (raid.isEmpty() || block.getState() instanceof TileState || state.sanctuaryOwner(chunk).isPresent()) return true;
             raids.recordOriginal(raid.get(), block, block.getBlockData().getAsString()); return false;
         }); event.setYield(0);
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onDamage(EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player player && claims.isHub(player.getLocation())) event.setCancelled(true);
     }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageByEntityEvent event) {
@@ -80,6 +87,13 @@ public final class ProtectionListener implements Listener {
         state.activeRaidAt(ChunkPos.of(event.getPlayer().getChunk())).filter(r -> raids.participant(r, event.getPlayer().getUniqueId())).ifPresent(raid -> {
             event.setKeepInventory(true); event.getDrops().clear(); event.setKeepLevel(true); event.setDroppedExp(0); raids.handleDeath(event.getPlayer(), raid);
         });
+    }
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onHunger(FoodLevelChangeEvent event) {
+        if (event.getEntity() instanceof Player player && claims.isHub(player.getLocation())) {
+            event.setCancelled(true);
+            player.setFoodLevel(Math.max(player.getFoodLevel(), 18));
+        }
     }
     @EventHandler public void onMove(PlayerMoveEvent event) {
         if (event.getTo() == null || event.getFrom().getChunk().equals(event.getTo().getChunk())) return;

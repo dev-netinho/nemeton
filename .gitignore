@@ -4,6 +4,7 @@
 target/
 data/
 backups/
+runtime/
 .env
 *.iml
 *.log
