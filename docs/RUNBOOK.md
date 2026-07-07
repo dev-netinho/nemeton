@@ -50,3 +50,5 @@ Não edite blocos manualmente. Pare novas entradas, preserve `raid_block_changes
 ## Discord indisponível
 
 O Minecraft continua operando. Não recrie cargos/canais manualmente durante uma interrupção curta. Confirme token/permissões (`Manage Roles`, `Manage Channels`, `Move Members`) e reinicie apenas DiscordSRV/Nemeton numa janela anunciada.
+
+Depois que o bot for autorizado no servidor Discord, execute `scripts/provision-discord.py` com `DISCORD_BOT_TOKEN` no ambiente. O provisionamento é idempotente: cria ou reutiliza cargos, categorias, chat global, avisos, recrutamento, comandos, clãs e voz por proximidade, retornando os IDs que devem ser aplicados ao DiscordSRV e ao NemetonCore. O token nunca deve ser passado por argumento nem commitado.
