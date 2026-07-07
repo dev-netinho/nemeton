@@ -29,6 +29,7 @@ public final class DiscordBridge {
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     private final ObjectMapper json = new ObjectMapper();
     private final Map<String, String> lastMessageByChannel = new ConcurrentHashMap<>();
+    private final Map<UUID, String> appliedClanIdentity = new ConcurrentHashMap<>();
     private final AtomicBoolean polling = new AtomicBoolean();
 
     public DiscordBridge(Settings.Discord config) { this.config = config; }
@@ -67,6 +68,8 @@ public final class DiscordBridge {
     }
     public CompletableFuture<Void> syncClanIdentity(UUID minecraftId, String clanRoleId, ClanRole rank) {
         if (!enabled()) return CompletableFuture.completedFuture(null);
+        String desired = Objects.toString(clanRoleId, "") + ":" + rank.name();
+        if (desired.equals(appliedClanIdentity.get(minecraftId))) return CompletableFuture.completedFuture(null);
         return linkedDiscordId(minecraftId).map(discordId -> {
             List<String> managed = configuredRankRoles();
             CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
@@ -78,7 +81,7 @@ public final class DiscordBridge {
                 case MEMBER -> config.clanMemberRoleId();
             };
             if (!rankRole.isBlank()) chain = chain.thenCompose(ignored -> setRole(discordId, rankRole, true));
-            return chain;
+            return chain.whenComplete((ignored, error) -> { if (error == null) appliedClanIdentity.put(minecraftId, desired); });
         }).orElseGet(() -> CompletableFuture.completedFuture(null));
     }
     public CompletableFuture<Void> removeClanIdentity(UUID minecraftId, String clanRoleId) {
@@ -88,7 +91,7 @@ public final class DiscordBridge {
             if (clanRoleId != null && !clanRoleId.isBlank()) roles.add(clanRoleId);
             CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
             for (String role : roles) chain = chain.thenCompose(ignored -> setRole(discordId, role, false));
-            return chain;
+            return chain.whenComplete((ignored, error) -> { if (error == null) appliedClanIdentity.remove(minecraftId); });
         }).orElseGet(() -> CompletableFuture.completedFuture(null));
     }
     public void alert(String message) { if (enabled() && !config.alertsChannelId().isBlank()) postMessage(config.alertsChannelId(), message); }
