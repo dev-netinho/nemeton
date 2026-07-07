@@ -5,6 +5,9 @@ from __future__ import annotations
 
 import json
 import os
+import argparse
+import pathlib
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -70,7 +73,71 @@ def find_or_create_channel(token: str, guild_id: str, name: str, channel_type: i
     return request(token, "POST", f"/guilds/{guild_id}/channels", body)
 
 
+def replace(path: pathlib.Path, pattern: str, replacement: str) -> None:
+    text = path.read_text()
+    updated, count = re.subn(pattern, lambda _: replacement, text, flags=re.MULTILINE)
+    if count != 1:
+        raise RuntimeError(f"Esperava uma ocorrência de {pattern!r} em {path}, encontrei {count}")
+    path.write_text(updated)
+
+
+def upsert_env(path: pathlib.Path, key: str, value: str) -> None:
+    text = path.read_text()
+    pattern = rf"(?m)^{re.escape(key)}=.*$"
+    line = f"{key}={value}"
+    if re.search(pattern, text):
+        text = re.sub(pattern, lambda _: line, text)
+    else:
+        text = text.rstrip() + "\n" + line + "\n"
+    path.write_text(text)
+
+
+def apply_server_config(root: pathlib.Path, result: dict, invite_url: str) -> None:
+    env = root / ".env"
+    core = root / "data/minecraft/plugins/NemetonCore/config.yml"
+    discord = root / "data/minecraft/plugins/DiscordSRV/config.yml"
+    linking = root / "data/minecraft/plugins/DiscordSRV/linking.yml"
+    voice = root / "data/minecraft/plugins/DiscordSRV/voice.yml"
+
+    upsert_env(env, "DISCORD_GUILD_ID", result["guild_id"])
+    replace(core, r"^  enabled: false$", "  enabled: true")
+    replace(core, r"^  guild-id:.*$", f"  guild-id: '{result['guild_id']}'")
+    replace(core, r"^  clans-category-id:.*$", f"  clans-category-id: '{result['clans_category_id']}'")
+    replace(core, r"^  alerts-channel-id:.*$", f"  alerts-channel-id: '{result['alerts_channel_id']}'")
+    replace(core, r"^  approved-role-id:.*$", f"  approved-role-id: '{result['approved_role_id']}'")
+
+    replace(discord, r"^Channels:.*$", "Channels: " + json.dumps({"global": result["global_chat_channel_id"]}))
+    replace(discord, r"^DiscordConsoleChannelId:.*$", 'DiscordConsoleChannelId: ""')
+    replace(discord, r"^DiscordInviteLink:.*$", "DiscordInviteLink: " + json.dumps(invite_url))
+    replace(discord, r"^Experiment_WebhookChatMessageDelivery:.*$", "Experiment_WebhookChatMessageDelivery: true")
+    replace(discord, r"^MinecraftDiscordAccountLinkedRoleNameToAddUserTo:.*$",
+            'MinecraftDiscordAccountLinkedRoleNameToAddUserTo: "Vinculado"')
+
+    replace(linking, r"^  Enabled:.*$", "  Enabled: true")
+    replace(linking, r"^  Bypass names:.*$", "  Bypass names: [oLuaLascado]")
+    replace(linking, r"^  Must be in Discord server:.*$", f"  Must be in Discord server: {result['guild_id']}")
+    replace(linking, r"^    Require subscriber role to join:.*$", "    Require subscriber role to join: true")
+    replace(linking, r"^    Subscriber roles:.*$", f'    Subscriber roles: ["{result["approved_role_id"]}"]')
+    replace(linking, r"^    Require all of the listed roles:.*$", "    Require all of the listed roles: true")
+
+    replace(voice, r"^Voice enabled:.*$", "Voice enabled: true")
+    replace(voice, r"^Voice category:.*$", f"Voice category: {result['voice_category_id']}")
+    replace(voice, r"^Lobby channel:.*$", f"Lobby channel: {result['voice_lobby_id']}")
+    replace(voice, r"^  Vertical Strength:.*$", "  Vertical Strength: 24")
+    replace(voice, r"^  Horizontal Strength:.*$", "  Horizontal Strength: 48")
+    replace(voice, r"^  Falloff:.*$", "  Falloff: 8")
+
+    output = root / "data/discord-provision.json"
+    output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+    os.chmod(env, 0o600)
+    os.chmod(discord, 0o600)
+    os.chmod(output, 0o600)
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=pathlib.Path, help="Aplica os IDs aos arquivos privados desta instalação")
+    args = parser.parse_args()
     token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
     if not token:
         raise SystemExit("DISCORD_BOT_TOKEN ausente")
@@ -122,6 +189,24 @@ def main() -> None:
     except RuntimeError:
         pass
 
+    invite_url = ""
+    try:
+        invite = request(token, "POST", f"/channels/{welcome['id']}/invites",
+                         {"max_age": 0, "max_uses": 0, "temporary": False, "unique": False})
+        invite_url = "https://discord.gg/" + invite["code"]
+    except RuntimeError:
+        pass
+
+    recent = request(token, "GET", f"/channels/{welcome['id']}/messages?limit=25")
+    if not any("Bem-vindo ao **Nemeton**" in message.get("content", "") for message in recent):
+        request(token, "POST", f"/channels/{welcome['id']}/messages", {"content":
+                "🌳 Bem-vindo ao **Nemeton**.\n\n"
+                "1. Receba o cargo **Aprovado**.\n"
+                "2. Entre no Minecraft e use `/discord link`.\n"
+                "3. Envie o código por DM para este bot.\n"
+                "4. Use `/clan`, `/online` e o Lobby de Proximidade para jogar com a comunidade.\n\n"
+                "O console administrativo nunca é exposto ao Discord."})
+
     result = {
         "guild_id": guild_id,
         "guild_name": guild["name"],
@@ -137,7 +222,10 @@ def main() -> None:
         "recruitment_channel_id": recruitment["id"],
         "commands_channel_id": commands["id"],
         "voice_lobby_id": voice_lobby["id"],
+        "invite_url": invite_url,
     }
+    if args.root:
+        apply_server_config(args.root.resolve(), result, invite_url)
     json.dump(result, sys.stdout, ensure_ascii=False, indent=2)
     print()
 
