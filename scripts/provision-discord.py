@@ -78,7 +78,10 @@ def find_or_create_channel(token: str, guild_id: str, name: str, channel_type: i
                            position: int | None = None) -> dict:
     channels = request(token, "GET", f"/guilds/{guild_id}/channels")
     existing = next((channel for channel in channels
-                     if channel["name"] in (name, *aliases) and channel["type"] == channel_type), None)
+                     if channel["name"] == name and channel["type"] == channel_type), None)
+    if existing is None:
+        existing = next((channel for channel in channels
+                         if channel["name"] in aliases and channel["type"] == channel_type), None)
     body: dict[str, object] = {"name": name, "type": channel_type}
     if parent_id is not None:
         body["parent_id"] = parent_id
@@ -239,6 +242,34 @@ def cleanup_defaults(token: str, guild_id: str, keep: set[str]) -> None:
                 pass
 
 
+def cleanup_legacy(token: str, guild_id: str, keep: set[str], general_id: str,
+                   approved_permissions: list[dict]) -> None:
+    channels = request(token, "GET", f"/guilds/{guild_id}/channels")
+    for channel in channels:
+        if channel["id"] in keep or channel["type"] != 0:
+            continue
+        if channel["name"] in {"chat-global", "recrutamento", "comandos"}:
+            messages = request(token, "GET", f"/channels/{channel['id']}/messages?limit=1")
+            if not messages:
+                request(token, "DELETE", f"/channels/{channel['id']}")
+        elif channel["name"] == "geral":
+            request(token, "PATCH", f"/channels/{channel['id']}", {
+                "name": "☕・conversa-livre",
+                "parent_id": general_id,
+                "topic": "Conversa da comunidade que não precisa aparecer dentro do Minecraft.",
+                "permission_overwrites": approved_permissions,
+            })
+
+    channels = request(token, "GET", f"/guilds/{guild_id}/channels")
+    for category in channels:
+        if category["id"] in keep or category["type"] != 4:
+            continue
+        if category["name"] not in {"CLÃS", "VOZ POR PROXIMIDADE", "Canais de Texto", "Canais de Voz"}:
+            continue
+        if not any(child.get("parent_id") == category["id"] for child in channels):
+            request(token, "DELETE", f"/channels/{category['id']}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=pathlib.Path, help="Raiz local/remota do projeto Nemeton")
@@ -383,7 +414,10 @@ def main() -> None:
         "voice_lobby_id": voice_lobby["id"],
         "invite_url": invite_url,
     }
-    cleanup_defaults(token, guild_id, set(result.values()))
+    keep = set(result.values())
+    if administrator:
+        cleanup_legacy(token, guild_id, keep, general["id"], approved_only)
+    cleanup_defaults(token, guild_id, keep)
     if root:
         apply_server_config(root, result, invite_url)
     json.dump(result, sys.stdout, ensure_ascii=False, indent=2)
