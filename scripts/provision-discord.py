@@ -198,7 +198,7 @@ def apply_server_config(root: pathlib.Path, result: dict, invite_url: str) -> No
     replace(voice, r"^  Horizontal Strength:.*$", "  Horizontal Strength: 48")
     replace(voice, r"^  Falloff:.*$", "  Falloff: 8")
 
-    output = root / "data/discord-provision.json"
+    output = root / "discord-provision.json"
     output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
     os.chmod(env, 0o600)
     os.chmod(discord, 0o600)
