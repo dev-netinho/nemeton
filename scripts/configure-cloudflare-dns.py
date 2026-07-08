@@ -12,6 +12,10 @@ Optional:
   NEMETON_BEDROCK_PORT defaults to 59460
   NEMETON_JAVA_HOST    Playit/free tunnel host for Java, if available
   NEMETON_JAVA_PORT    Playit/free tunnel port for Java, if available
+  NEMETON_SITE_ORIGIN_IP public IPv4/IPv6 for the website on nemeton.<zone>
+  NEMETON_SITE_PROXIED   defaults to true for Cloudflare HTTPS edge
+  NEMETON_SITE_TUNNEL_ID route nemeton.<zone> to this Cloudflare Tunnel ID
+  NEMETON_SITE_USE_WILDCARD delete explicit nemeton.<zone> web records and use *.zone tunnel
 """
 
 from __future__ import annotations
@@ -125,6 +129,10 @@ def main() -> int:
     bedrock_port = int(env("NEMETON_BEDROCK_PORT", "59460"))
     java_host = os.environ.get("NEMETON_JAVA_HOST", "").strip().rstrip(".")
     java_port = os.environ.get("NEMETON_JAVA_PORT", "").strip()
+    site_origin_ip = os.environ.get("NEMETON_SITE_ORIGIN_IP", "").strip()
+    site_proxied = os.environ.get("NEMETON_SITE_PROXIED", "true").strip().lower() not in ("0", "false", "no")
+    site_tunnel_id = os.environ.get("NEMETON_SITE_TUNNEL_ID", "").strip()
+    site_use_wildcard = os.environ.get("NEMETON_SITE_USE_WILDCARD", "false").strip().lower() in ("1", "true", "yes")
 
     zid = zone_id(token, zone)
 
@@ -166,6 +174,41 @@ def main() -> int:
         print(f"java_ready=nemeton.{zone} via SRV -> {java_host}:{java_port}")
     else:
         print("java_ready=no; set NEMETON_JAVA_HOST and NEMETON_JAVA_PORT after creating the Java TCP tunnel")
+
+    if site_tunnel_id:
+        upsert(
+            token,
+            zid,
+            {
+                "type": "CNAME",
+                "name": f"nemeton.{zone}",
+                "content": f"{site_tunnel_id}.cfargotunnel.com",
+                "ttl": 1,
+                "proxied": True,
+                "comment": "Nemeton public website via dedicated Cloudflare Tunnel. Minecraft Java keeps using the SRV record.",
+            },
+        )
+        print(f"site_ready=https://nemeton.{zone} via tunnel {site_tunnel_id}")
+    elif site_use_wildcard:
+        delete_records(token, zid, f"nemeton.{zone}", ("A", "AAAA", "CNAME"))
+        print(f"site_ready=https://nemeton.{zone} via existing wildcard/tunnel DNS")
+    elif site_origin_ip:
+        upsert(
+            token,
+            zid,
+            {
+                "type": "AAAA" if ":" in site_origin_ip else "A",
+                "name": f"nemeton.{zone}",
+                "content": site_origin_ip,
+                "ttl": 300,
+                "proxied": site_proxied,
+                "comment": "Nemeton public website. Minecraft Java keeps using the SRV record.",
+            },
+        )
+        mode = "proxied" if site_proxied else "DNS-only"
+        print(f"site_ready=https://nemeton.{zone} -> {site_origin_ip} ({mode})")
+    else:
+        print("site_ready=no; set NEMETON_SITE_ORIGIN_IP to publish the website on nemeton.<zone>")
 
     print(f"bedrock_ready=b.nemeton.{zone}:{bedrock_port} -> {bedrock_host}:{bedrock_port}")
     return 0

@@ -72,3 +72,46 @@ services:
       resources:
         limits:
           memory: ${MC_MEMORY_LIMIT:-5G}
+
+  site:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+    networks:
+      - default
+      - traefik-public
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: traefik-public
+      traefik.http.routers.nemeton-site.entrypoints: web
+      traefik.http.routers.nemeton-site.rule: Host(`nemeton.olua.me`)
+      traefik.http.routers.nemeton-site-secure.entrypoints: websecure
+      traefik.http.routers.nemeton-site-secure.rule: Host(`nemeton.olua.me`)
+      traefik.http.routers.nemeton-site-secure.tls: "true"
+      traefik.http.routers.nemeton-site-secure.tls.certresolver: let-enc
+      traefik.http.services.nemeton-site.loadbalancer.server.port: "80"
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  site-tunnel:
+    image: cloudflare/cloudflared:2026.6.1
+    restart: unless-stopped
+    user: "0:0"
+    command: tunnel --config /etc/cloudflared/config.yml run
+    depends_on:
+      - site
+    volumes:
+      - ./runtime/cloudflared-nemeton:/etc/cloudflared:ro
+    networks:
+      - default
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+networks:
+  traefik-public:
+    external: true

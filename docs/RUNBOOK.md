@@ -4,7 +4,7 @@
 
 - Verificar `docker compose -f compose.yml ps` e o histórico de alertas.
 - Testar Java em `100.123.99.34:25565` dentro da Tailnet e Bedrock público em `documents-voicing.gl.at.ply.gg:59460`.
-- Endereços públicos desejados: Java em `nemeton.olua.me` via registro SRV para o túnel TCP do Playit; Bedrock em `b.nemeton.olua.me`, porta `59460`, como CNAME DNS-only para o túnel UDP do Playit.
+- Endereços públicos desejados: Java em `nemeton.olua.me` via registro SRV para o túnel TCP do Playit; Bedrock em `b.nemeton.olua.me`, porta `59460`, como CNAME DNS-only para o túnel UDP do Playit; site em `https://nemeton.olua.me` via Cloudflare Tunnel dedicado.
 - Confirmar que o `playit` está rodando: `ps -p "$(cat runtime/playit/state/playit.pid)" -o pid,etime,cmd`.
 - Comandos da experiência alpha: `/menu`, `/guia`, `/kit`, `/nemeton`, `/spawn`, `/mapa`, `/mochila`, `/lapide`, `/troca`, `/mods`, `/mods itens`, `/santuario ajuda` e `/clan ajuda`.
 - Em troca com Bedrock, evitar a interface Java: o plugin abre formulário nativo quando possível. Se o jogador fechar ou o Floodgate não responder, usar `/troca oferecer [qtd]`, `/troca ver`, `/troca aceitar` e `/troca cancelar`.
@@ -29,14 +29,15 @@ O pack visual é gerado por `scripts/build-resource-packs.py`. Publique `resourc
 
 O squaremap escuta apenas em `127.0.0.1:8100`. `scripts/start-map-tunnel.sh` cria um Quick Tunnel isolado (sem ler os túneis Cloudflare dos demais projetos) e grava a URL atual em `plugins/NemetonCore/map-url.txt`, lida dinamicamente por `/mapa`.
 
-## DNS de divulgação
+## DNS e site de divulgação
 
-O domínio base é `olua.me`, gerenciado no Cloudflare. O proxy laranja da Cloudflare não serve Minecraft comum; todos os registros do Nemeton precisam ficar como **DNS only**.
+O domínio base é `olua.me`, gerenciado no Cloudflare. O proxy laranja da Cloudflare não serve Minecraft comum; os registros de jogo do Nemeton precisam ficar como **DNS only**. A exceção é o site, que usa Cloudflare Tunnel e pode ficar proxied.
 
 Endereços ativos da alpha:
 
 - Java: `nemeton.olua.me`, via SRV `_minecraft._tcp.nemeton.olua.me -> test-sellers.gl.joinmc.link:10727`.
 - Bedrock: `b.nemeton.olua.me`, porta `59460`, via CNAME para `documents-voicing.gl.at.ply.gg`.
+- Site: `https://nemeton.olua.me`, via CNAME proxied para o tunnel dedicado `nemeton-site-olua`.
 
 Quando houver token Cloudflare com `Zone:Read` e `DNS:Edit`, configure o Bedrock com:
 
@@ -53,14 +54,17 @@ NEMETON_JAVA_PORT='porta-java' \
 scripts/configure-cloudflare-dns.py
 ```
 
+Para publicar o site junto, use `NEMETON_SITE_TUNNEL_ID` com o ID do tunnel dedicado do Nemeton. As credenciais ficam somente na VPS em `runtime/cloudflared-nemeton/`, fora do Git.
+
 Validação esperada:
 
 ```bash
 dig +short b.nemeton.olua.me CNAME
 dig +short _minecraft._tcp.nemeton.olua.me SRV
+curl -I https://nemeton.olua.me/
 ```
 
-No Bedrock, divulgar `b.nemeton.olua.me` com a porta `59460`. No Java, divulgar apenas `nemeton.olua.me`. Não criar nem divulgar CNAME Java direto: o gateway Minecraft Java gratuito do Playit valida hostname no handshake; o caminho seguro é o SRV apontando para o domínio Java atribuído pelo Playit.
+No Bedrock, divulgar `b.nemeton.olua.me` com a porta `59460`. No Java, divulgar apenas `nemeton.olua.me`. No navegador, o mesmo `nemeton.olua.me` abre o site; o cliente Java usa o SRV. Não criar nem divulgar CNAME Java direto: o gateway Minecraft Java gratuito do Playit valida hostname no handshake; o caminho seguro é o SRV apontando para o domínio Java atribuído pelo Playit.
 
 ## Backup
 
