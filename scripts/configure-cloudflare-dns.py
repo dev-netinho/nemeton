@@ -82,6 +82,13 @@ def delete_conflicting(token: str, zid: str, name: str, keep_type: str) -> None:
             print(f"deleted {record_type} {name}")
 
 
+def delete_records(token: str, zid: str, name: str, record_types: tuple[str, ...]) -> None:
+    for record_type in record_types:
+        for record in existing_records(token, zid, name, record_type):
+            request("DELETE", f"/zones/{zid}/dns_records/{record['id']}", token)
+            print(f"deleted {record_type} {name}")
+
+
 def upsert(token: str, zid: str, payload: dict) -> None:
     name = payload["name"]
     record_type = payload["type"]
@@ -152,18 +159,10 @@ def main() -> int:
                 "comment": "Nemeton Java Minecraft SRV record",
             },
         )
-        upsert(
-            token,
-            zid,
-            {
-                "type": "CNAME",
-                "name": f"j.nemeton.{zone}",
-                "content": java_host,
-                "ttl": 300,
-                "proxied": False,
-                "comment": f"Nemeton Java free Playit tunnel, port {java_port}",
-            },
-        )
+        # Do not publish a Java CNAME shortcut: Playit's free Minecraft Java
+        # gateway validates the hostname in the Minecraft handshake. The safe
+        # friendly address is the SRV record on nemeton.<zone>.
+        delete_records(token, zid, f"j.nemeton.{zone}", ("A", "AAAA", "CNAME", "SRV"))
         print(f"java_ready=nemeton.{zone} via SRV -> {java_host}:{java_port}")
     else:
         print("java_ready=no; set NEMETON_JAVA_HOST and NEMETON_JAVA_PORT after creating the Java TCP tunnel")

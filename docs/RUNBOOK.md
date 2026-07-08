@@ -33,6 +33,11 @@ O squaremap escuta apenas em `127.0.0.1:8100`. `scripts/start-map-tunnel.sh` cri
 
 O domínio base é `olua.me`, gerenciado no Cloudflare. O proxy laranja da Cloudflare não serve Minecraft comum; todos os registros do Nemeton precisam ficar como **DNS only**.
 
+Endereços ativos da alpha:
+
+- Java: `nemeton.olua.me`, via SRV `_minecraft._tcp.nemeton.olua.me -> test-sellers.gl.joinmc.link:10727`.
+- Bedrock: `b.nemeton.olua.me`, porta `59460`, via CNAME para `documents-voicing.gl.at.ply.gg`.
+
 Quando houver token Cloudflare com `Zone:Read` e `DNS:Edit`, configure o Bedrock com:
 
 ```bash
@@ -55,7 +60,7 @@ dig +short b.nemeton.olua.me CNAME
 dig +short _minecraft._tcp.nemeton.olua.me SRV
 ```
 
-No Bedrock, divulgar `b.nemeton.olua.me` com a porta `59460`. No Java, divulgar apenas `nemeton.olua.me` depois que o SRV estiver propagado e o túnel TCP testado de fora da Tailnet.
+No Bedrock, divulgar `b.nemeton.olua.me` com a porta `59460`. No Java, divulgar apenas `nemeton.olua.me`. Não criar nem divulgar CNAME Java direto: o gateway Minecraft Java gratuito do Playit valida hostname no handshake; o caminho seguro é o SRV apontando para o domínio Java atribuído pelo Playit.
 
 ## Backup
 
