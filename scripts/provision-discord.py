@@ -184,6 +184,7 @@ def apply_server_config(root: pathlib.Path, result: dict, invite_url: str) -> No
     replace(discord, r"^Channels:.*$", "Channels: " + json.dumps({"global": result["global_chat_channel_id"]}))
     replace(discord, r"^DiscordConsoleChannelId:.*$", 'DiscordConsoleChannelId: ""')
     replace(discord, r"^DiscordInviteLink:.*$", "DiscordInviteLink: " + json.dumps(invite_url))
+    replace(discord, r"^DiscordChatChannelConsoleCommandEnabled:.*$", "DiscordChatChannelConsoleCommandEnabled: false")
     replace(discord, r"^Experiment_WebhookChatMessageDelivery:.*$", "Experiment_WebhookChatMessageDelivery: true")
     replace(discord, r"^MinecraftDiscordAccountLinkedRoleNameToAddUserTo:.*$",
             'MinecraftDiscordAccountLinkedRoleNameToAddUserTo: "🔗 Vinculado"')
@@ -191,9 +192,15 @@ def apply_server_config(root: pathlib.Path, result: dict, invite_url: str) -> No
     replace(linking, r"^  Enabled:.*$", "  Enabled: true")
     replace(linking, r"^  Bypass names:.*$", "  Bypass names: [oLuaLascado]")
     replace(linking, r"^  Must be in Discord server:.*$", f"  Must be in Discord server: {result['guild_id']}")
-    replace(linking, r"^    Require subscriber role to join:.*$", "    Require subscriber role to join: true")
-    replace(linking, r"^    Subscriber roles:.*$", f'    Subscriber roles: ["{result["approved_role_id"]}"]')
-    replace(linking, r"^    Require all of the listed roles:.*$", "    Require all of the listed roles: true")
+    replace(linking, r"^  Not linked message:.*$",
+            '  Not linked message: "&eVincule seu &9Discord &epara jogar no Nemeton.\\n\\n&7Entre no Discord e envie uma DM para &b{BOT}&7 contendo apenas o código &b{CODE}&7.\\n\\n&7Convite » &b{INVITE}"')
+    replace(linking, r"^    Require subscriber role to join:.*$", "    Require subscriber role to join: false")
+    replace(linking, r"^    Subscriber roles:.*$", "    Subscriber roles: []")
+    replace(linking, r"^    Require all of the listed roles:.*$", "    Require all of the listed roles: false")
+    replace(linking, r"^    Kick message:.*$",
+            '    Kick message: "&cEntre no Discord do Nemeton e vincule sua conta para jogar."')
+    replace(linking, r"^    Not in server:.*$",
+            '    Not in server: "&cVocê precisa estar no Discord do Nemeton para jogar.\\n\\nEntre em {INVITE}"')
 
     replace(voice, r"^Voice enabled:.*$", "Voice enabled: true")
     replace(voice, r"^Voice category:.*$", f"Voice category: {result['voice_category_id']}")
