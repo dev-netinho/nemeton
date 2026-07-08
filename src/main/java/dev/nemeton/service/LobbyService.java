@@ -57,7 +57,12 @@ public final class LobbyService implements Listener, CommandExecutor {
     private static final int CHANGES_PER_TICK = 450;
     private static final int MAX_VISUAL_RADIUS = 44;
     private static final int MIN_VISUAL_RADIUS = 30;
+    private static final int TREE_COPY_RADIUS = 44;
+    private static final int TREE_COPY_BELOW = 12;
+    private static final int TREE_COPY_ABOVE = 78;
     private static final String CITIZENS_ROLE = "nemeton-role";
+
+    private record TreeBlock(int dx, int dy, int dz, BlockData data) { }
 
     private final JavaPlugin plugin;
     private final Settings settings;
@@ -305,12 +310,126 @@ public final class LobbyService implements Listener, CommandExecutor {
             setSpawn(sender);
             return true;
         }
+        if (args[0].equalsIgnoreCase("copiararvore")) {
+            copyTree(sender, args);
+            return true;
+        }
         if (args[0].equalsIgnoreCase("construir")) {
             buildLobby(sender);
             return true;
         }
-        sender.sendMessage("Use /nemetonadmin construir|selar|npcs|status|setspawn|avaliar <x> <z> [raio]");
+        sender.sendMessage("Use /nemetonadmin construir|selar|npcs|status|setspawn|avaliar|copiararvore");
         return true;
+    }
+
+    private void copyTree(CommandSender sender, String[] args) {
+        if (args.length < 4) {
+            sender.sendMessage("§eUse /nemetonadmin copiararvore <x> <y-do-solo> <z>");
+            return;
+        }
+        if (building) {
+            sender.sendMessage("§eUma construção do Nemeton já está em andamento.");
+            return;
+        }
+        World world = world();
+        if (world == null) {
+            sender.sendMessage("§cMundo do Nemeton não carregado.");
+            return;
+        }
+
+        final int targetX;
+        final int targetY;
+        final int targetZ;
+        try {
+            targetX = Integer.parseInt(args[1]);
+            targetY = Integer.parseInt(args[2]);
+            targetZ = Integer.parseInt(args[3]);
+        } catch (NumberFormatException exception) {
+            sender.sendMessage("§cAs coordenadas precisam ser números inteiros.");
+            return;
+        }
+        if (targetY - TREE_COPY_BELOW <= world.getMinHeight()
+                || targetY + TREE_COPY_ABOVE >= world.getMaxHeight()) {
+            sender.sendMessage("§cA árvore não cabe nessa altura.");
+            return;
+        }
+
+        int sourceX = blockCenterX();
+        int sourceZ = blockCenterZ();
+        int sourceGround = terrainSurfaceY(world, sourceX, sourceZ);
+        int width = TREE_COPY_RADIUS * 2 + 1;
+        int height = TREE_COPY_BELOW + TREE_COPY_ABOVE + 1;
+        int layerSize = width * width;
+        int scanSize = layerSize * height;
+        List<TreeBlock> blocks = new ArrayList<>();
+        building = true;
+        sender.sendMessage("§6Copiando somente a árvore do Nemeton para §f" + targetX + " " + targetY + " " + targetZ
+                + "§6. Madeira, copa, raízes suspensas e luzes serão preservadas.");
+
+        new BukkitRunnable() {
+            private int scanIndex;
+            private Iterator<TreeBlock> placement;
+            private int placed;
+            private int skipped;
+
+            @Override public void run() {
+                if (placement == null) {
+                    int scanned = 0;
+                    while (scanIndex < scanSize && scanned++ < 6000) {
+                        int yIndex = scanIndex / layerSize;
+                        int remainder = scanIndex % layerSize;
+                        int dx = remainder / width - TREE_COPY_RADIUS;
+                        int dz = remainder % width - TREE_COPY_RADIUS;
+                        int dy = yIndex - TREE_COPY_BELOW;
+                        scanIndex++;
+
+                        Block source = world.getBlockAt(sourceX + dx, sourceGround + dy, sourceZ + dz);
+                        if (!isTreeReplicaMaterial(source.getType())) continue;
+                        blocks.add(new TreeBlock(dx, dy, dz, source.getBlockData().clone()));
+                    }
+                    if (scanIndex < scanSize) return;
+                    placement = blocks.iterator();
+                    sender.sendMessage("§7Árvore isolada: " + blocks.size() + " blocos. Iniciando a montagem em lotes seguros.");
+                }
+
+                int changed = 0;
+                while (placement.hasNext() && changed++ < CHANGES_PER_TICK) {
+                    TreeBlock treeBlock = placement.next();
+                    Block target = world.getBlockAt(targetX + treeBlock.dx(), targetY + treeBlock.dy(), targetZ + treeBlock.dz());
+                    if (!canPlaceTreeReplica(target.getType(), treeBlock.data().getMaterial())) {
+                        skipped++;
+                        continue;
+                    }
+                    target.setBlockData(treeBlock.data(), false);
+                    placed++;
+                }
+                if (placement.hasNext()) return;
+
+                cancel();
+                building = false;
+                world.save();
+                String result = "Árvore do Nemeton concluída em " + targetX + " " + targetY + " " + targetZ
+                        + ": " + placed + " blocos colocados, " + skipped + " preservados por haver construção no caminho.";
+                sender.sendMessage("§a" + result);
+                plugin.getLogger().info(result);
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private boolean isTreeReplicaMaterial(Material material) {
+        return switch (material) {
+            case DARK_OAK_LOG, STRIPPED_DARK_OAK_LOG, SPRUCE_LOG,
+                    OAK_LEAVES, DARK_OAK_LEAVES, AZALEA_LEAVES, FLOWERING_AZALEA_LEAVES,
+                    HANGING_ROOTS, SEA_LANTERN, SHROOMLIGHT -> true;
+            default -> false;
+        };
+    }
+
+    private boolean canPlaceTreeReplica(Material existing, Material treeMaterial) {
+        boolean leaves = treeMaterial.name().endsWith("_LEAVES");
+        if (leaves) return existing.isAir() || existing.name().endsWith("_LEAVES");
+        if (existing.isAir() || existing.name().endsWith("_LEAVES")) return true;
+        return !existing.isSolid() && existing != Material.WATER && existing != Material.LAVA;
     }
 
     private void setSpawn(CommandSender sender) {
