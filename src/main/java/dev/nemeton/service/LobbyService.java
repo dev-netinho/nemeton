@@ -340,6 +340,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         final int targetX;
         final int targetY;
         final int targetZ;
+        final boolean correction = args.length >= 5 && args[4].equalsIgnoreCase("corrigir");
         try {
             targetX = Integer.parseInt(args[1]);
             targetY = Integer.parseInt(args[2]);
@@ -363,17 +364,22 @@ public final class LobbyService implements Listener, CommandExecutor {
         int scanSize = layerSize * height;
         List<TreeBlock> blocks = new ArrayList<>();
         building = true;
-        sender.sendMessage("§6Copiando somente a árvore do Nemeton para §f" + targetX + " " + targetY + " " + targetZ
-                + "§6. Madeira, copa, raízes suspensas e luzes serão preservadas.");
+        sender.sendMessage("§6" + (correction ? "Corrigindo" : "Copiando") + " somente a árvore do Nemeton em §f"
+                + targetX + " " + targetY + " " + targetZ
+                + "§6. O bloco mais baixo da árvore ficará exatamente no Y informado.");
 
         new BukkitRunnable() {
             private int scanIndex;
+            private boolean scanFinished;
+            private Iterator<TreeBlock> cleanup;
             private Iterator<TreeBlock> placement;
+            private int minimumDy;
+            private int removed;
             private int placed;
             private int skipped;
 
             @Override public void run() {
-                if (placement == null) {
+                if (!scanFinished) {
                     int scanned = 0;
                     while (scanIndex < scanSize && scanned++ < 6000) {
                         int yIndex = scanIndex / layerSize;
@@ -388,14 +394,30 @@ public final class LobbyService implements Listener, CommandExecutor {
                         blocks.add(new TreeBlock(dx, dy, dz, source.getBlockData().clone()));
                     }
                     if (scanIndex < scanSize) return;
-                    placement = blocks.iterator();
-                    sender.sendMessage("§7Árvore isolada: " + blocks.size() + " blocos. Iniciando a montagem em lotes seguros.");
+                    scanFinished = true;
+                    minimumDy = blocks.stream().mapToInt(TreeBlock::dy).min().orElse(0);
+                    cleanup = correction ? blocks.iterator() : Collections.emptyIterator();
+                    sender.sendMessage("§7Árvore isolada: " + blocks.size() + " blocos. Referência vertical corrigida em "
+                            + (-minimumDy) + " blocos; iniciando montagem em lotes seguros.");
                 }
+
+                int cleaned = 0;
+                while (cleanup.hasNext() && cleaned++ < CHANGES_PER_TICK) {
+                    TreeBlock treeBlock = cleanup.next();
+                    Block oldTarget = world.getBlockAt(
+                            targetX + treeBlock.dx(), targetY + treeBlock.dy(), targetZ + treeBlock.dz());
+                    if (oldTarget.getType() != treeBlock.data().getMaterial()) continue;
+                    oldTarget.setType(Material.AIR, false);
+                    removed++;
+                }
+                if (cleanup.hasNext()) return;
+                if (placement == null) placement = blocks.iterator();
 
                 int changed = 0;
                 while (placement.hasNext() && changed++ < CHANGES_PER_TICK) {
                     TreeBlock treeBlock = placement.next();
-                    Block target = world.getBlockAt(targetX + treeBlock.dx(), targetY + treeBlock.dy(), targetZ + treeBlock.dz());
+                    Block target = world.getBlockAt(targetX + treeBlock.dx(),
+                            targetY + treeBlock.dy() - minimumDy, targetZ + treeBlock.dz());
                     if (!canPlaceTreeReplica(target.getType(), treeBlock.data().getMaterial())) {
                         skipped++;
                         continue;
@@ -409,7 +431,8 @@ public final class LobbyService implements Listener, CommandExecutor {
                 building = false;
                 world.save();
                 String result = "Árvore do Nemeton concluída em " + targetX + " " + targetY + " " + targetZ
-                        + ": " + placed + " blocos colocados, " + skipped + " preservados por haver construção no caminho.";
+                        + ": base real no Y " + targetY + ", " + removed + " blocos antigos removidos, "
+                        + placed + " blocos colocados, " + skipped + " preservados por haver construção no caminho.";
                 sender.sendMessage("§a" + result);
                 plugin.getLogger().info(result);
             }
