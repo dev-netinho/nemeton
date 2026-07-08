@@ -301,12 +301,55 @@ public final class LobbyService implements Listener, CommandExecutor {
             evaluateTerrain(sender, args);
             return true;
         }
+        if (args[0].equalsIgnoreCase("setspawn")) {
+            setSpawn(sender);
+            return true;
+        }
         if (args[0].equalsIgnoreCase("construir")) {
             buildLobby(sender);
             return true;
         }
-        sender.sendMessage("Use /nemetonadmin construir|selar|npcs|status|avaliar <x> <z> [raio]");
+        sender.sendMessage("Use /nemetonadmin construir|selar|npcs|status|setspawn|avaliar <x> <z> [raio]");
         return true;
+    }
+
+    private void setSpawn(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§eUse este comando dentro do jogo, no ponto exato do novo spawn.");
+            return;
+        }
+        Location location = player.getLocation();
+        World world = location.getWorld();
+        if (world == null) {
+            sender.sendMessage("§cMundo inválido.");
+            return;
+        }
+        if (!world.getName().equals(settings.hub().world())) {
+            sender.sendMessage("§cO spawn do Nemeton precisa ficar no mundo " + settings.hub().world() + ".");
+            return;
+        }
+
+        double x = centered(location.getX());
+        double y = location.getY();
+        double z = centered(location.getZ());
+        float yaw = location.getYaw();
+        float pitch = location.getPitch();
+
+        plugin.getConfig().set("nemeton.x", x);
+        plugin.getConfig().set("nemeton.y", y);
+        plugin.getConfig().set("nemeton.z", z);
+        plugin.getConfig().set("nemeton.yaw", (double) yaw);
+        plugin.getConfig().set("nemeton.pitch", (double) pitch);
+        plugin.saveConfig();
+
+        settings.updateHub(new Settings.Hub(settings.hub().world(), x, y, z, yaw, pitch,
+                settings.hub().centerX(), settings.hub().centerZ(), settings.hub().radius(),
+                settings.hub().warmup(), settings.hub().cooldown()));
+        world.setSpawnLocation(location.getBlockX(), location.getBlockY(), location.getBlockZ(), yaw);
+        player.setCompassTarget(new Location(world, settings.hub().centerX(), y, settings.hub().centerZ()));
+        sender.sendMessage("§aSpawn do Nemeton atualizado para §f" + world.getName() + " "
+                + String.format(java.util.Locale.ROOT, "%.1f %.1f %.1f", x, y, z) + "§a.");
+        sender.sendMessage("§7Agora /spawn, /nemeton, respawn e primeiro login usam este ponto.");
     }
 
     public boolean isInside(Location location) {
@@ -1144,4 +1187,5 @@ public final class LobbyService implements Listener, CommandExecutor {
     private int beaconY() { return (int) Math.floor(settings.hub().y()) + 1; }
     private int visualRadius() { return Math.max(MIN_VISUAL_RADIUS, Math.min(settings.hub().radius(), MAX_VISUAL_RADIUS)); }
     private int gateOffset() { return Math.max(visualRadius() - 3, 26); }
+    private double centered(double coordinate) { return Math.floor(coordinate) + 0.5; }
 }

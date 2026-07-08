@@ -6,8 +6,21 @@ import java.time.Duration;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public record Settings(Database database, Hub hub, Claims claims, War war, Discord discord) {
+public final class Settings {
     private static final Pattern ENV = Pattern.compile("^\\$\\{([A-Z0-9_]+):([^}]*)}$");
+    private final Database database;
+    private volatile Hub hub;
+    private final Claims claims;
+    private final War war;
+    private final Discord discord;
+
+    public Settings(Database database, Hub hub, Claims claims, War war, Discord discord) {
+        this.database = database;
+        this.hub = hub;
+        this.claims = claims;
+        this.war = war;
+        this.discord = discord;
+    }
 
     public static Settings load(FileConfiguration config) {
         Database database = new Database(
@@ -60,6 +73,13 @@ public record Settings(Database database, Hub hub, Claims claims, War war, Disco
         return System.getenv().getOrDefault(matcher.group(1), matcher.group(2));
     }
     private static String firstNonBlank(String first, String second) { return first != null && !first.isBlank() ? first : second; }
+
+    public Database database() { return database; }
+    public Hub hub() { return hub; }
+    public Claims claims() { return claims; }
+    public War war() { return war; }
+    public Discord discord() { return discord; }
+    public void updateHub(Hub hub) { this.hub = hub; }
 
     public record Database(String host, int port, String name, String username, String password, int poolSize) {
         public String jdbcUrl() { return "jdbc:mariadb://" + host + ":" + port + "/" + name + "?useUnicode=true&characterEncoding=utf8"; }

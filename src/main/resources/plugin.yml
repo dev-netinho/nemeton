@@ -51,7 +51,7 @@ commands:
     aliases: [vanillaplus, nemetonplus, reliquias]
   nemetonadmin:
     description: Manutenção visual e interativa do Nemeton.
-    usage: /nemetonadmin construir|npcs|status
+    usage: /nemetonadmin construir|selar|npcs|status|setspawn|avaliar
     permission: nemeton.admin
 permissions:
   nemeton.player:
