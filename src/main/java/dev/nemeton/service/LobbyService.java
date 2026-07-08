@@ -190,7 +190,7 @@ public final class LobbyService implements Listener, CommandExecutor {
                         "§7Negocie sem loja infinita e sem moeda virtual.",
                         "§f/troca <jogador> §7abre troca segura.",
                         "§7No Java abre uma interface.",
-                        "§7No Bedrock usa modo seguro por chat para evitar kick.");
+                        "§7No Bedrock abre uma tela nativa com botões.");
             }
             case "wilds" -> {
                 npcCard(player, "§b§lTarin, Batedor",
@@ -228,8 +228,8 @@ public final class LobbyService implements Listener, CommandExecutor {
             }
             case "trade" -> {
                 title = "Mara • Trocas";
-                content = "Negocie sem banco virtual.\n\nJava usa interface de inventário.\nBedrock usa formulários e comandos seguros para não buggar a conexão.";
-                buttons = new String[]{"Como trocar", "Ver troca atual", "Cancelar troca atual", "Fechar"};
+                content = "Negocie sem banco virtual.\n\nJava usa interface de inventário.\nBedrock usa uma tela nativa com botões: oferecer item da mão, aceitar, limpar e cancelar.";
+                buttons = new String[]{"Abrir troca", "Ver troca atual", "Cancelar troca atual", "Fechar"};
             }
             case "wilds" -> {
                 title = "Tarin • Exploração";
@@ -258,7 +258,7 @@ public final class LobbyService implements Listener, CommandExecutor {
                 else if (index == 1) player.performCommand("raid status");
             }
             case "trade" -> {
-                if (index == 0) player.performCommand("troca ajuda");
+                if (index == 0) player.performCommand("troca");
                 else if (index == 1) player.performCommand("troca ver");
                 else if (index == 2) player.performCommand("troca cancelar");
             }
@@ -1023,7 +1023,7 @@ public final class LobbyService implements Listener, CommandExecutor {
                 DyeColor.LIME, Material.WRITTEN_BOOK);
         spawnNpc(registry, world, "trade", "Mara", "§6Mara • Trocas", 14, 8,
                 DyeColor.YELLOW, Material.EMERALD);
-        spawnNpc(registry, world, "clans", "Borin", "§cBorin • Clãs", -14, -8,
+        spawnNpc(registry, world, "clans", "amenic", "§cBorin • Clãs", -14, -8,
                 DyeColor.RED, Material.RED_BANNER);
         spawnNpc(registry, world, "wilds", "Tarin", "§bTarin • Exploração", 8, -14,
                 DyeColor.LIGHT_BLUE, Material.COMPASS);
@@ -1082,7 +1082,7 @@ public final class LobbyService implements Listener, CommandExecutor {
         look.setRange(9.0);
         look.setRealisticLooking(true);
         look.setPerPlayer(true);
-        if (created) npc.getOrAddTrait(SkinTrait.class).setSkinName(skinName, false);
+        npc.getOrAddTrait(SkinTrait.class).setSkinName(skinName, false);
         if (npc.isSpawned()) npc.teleport(location, PlayerTeleportEvent.TeleportCause.PLUGIN);
         else if (!npc.spawn(location)) {
             plugin.getLogger().warning("Não foi possível posicionar o NPC " + name + ".");

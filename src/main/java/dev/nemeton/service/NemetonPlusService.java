@@ -130,8 +130,9 @@ public final class NemetonPlusService implements Listener, TabExecutor {
                 "Nemeton+ Alpha",
                 "O servidor continua crossplay: nada de modpack obrigatório.\n\n"
                         + "Usamos plugin próprio, datapacks, itens com visual vanilla-safe e, depois dos testes, packs Java/Bedrock equivalentes.\n\n"
+                        + "Essências do Nemeton caem raramente ao minerar minérios e alimentam as receitas autorais.\n\n"
                         + "Java/Lunar: ative o minimap no cliente.\n"
-                        + "Bedrock: use /mapa, Forms nativos e o mapa ao vivo.",
+                        + "Bedrock: use /mapa, telas nativas e o mapa ao vivo.",
                 index -> {
                     if (index == 0) sendItems(player);
                     else if (index == 1) player.performCommand("mapa");
@@ -145,6 +146,7 @@ public final class NemetonPlusService implements Listener, TabExecutor {
         player.sendMessage("§d§lNemeton+ Alpha");
         player.sendMessage("§7O servidor continua crossplay, então mods pesados de Forge/Fabric não entram no servidor principal.");
         player.sendMessage("§7Aqui vamos usar plugin próprio, datapacks, resource packs e mods opcionais por cliente.");
+        player.sendMessage("§fEssências: §7drop raro ao minerar minérios; diamante/esmeralda têm a melhor chance.");
         player.sendMessage("§fJava/Lunar: §7ative o minimap no Lunar: Right Shift → Mods → Minimap.");
         player.sendMessage("§fBedrock: §7use §f/mapa§7 e o mapa web. Addons Bedrock não rodam como Forge em servidor Java.");
         player.sendMessage(Component.text("§bAbrir mapa ao vivo")
@@ -155,11 +157,18 @@ public final class NemetonPlusService implements Listener, TabExecutor {
     private void sendItems(Player player) {
         if (BedrockForms.sendSimple(plugin, player,
                 "Itens Nemeton+",
-                "Essência do Nemeton: drop raro de mineração.\n\n"
-                        + "Lâmina do Nemeton: essência + diamante + graveto.\n\n"
-                        + "Machado do Guardião: duas essências + graveto.\n\n"
-                        + "Peitoral Sentinela: peitoral de diamante cercado por essências, com trim/brilho vanilla-safe.\n\n"
-                        + "Wither e Dragão deixam corações especiais para eventos.",
+                "Essência do Nemeton\n"
+                        + "• Drop raro ao minerar minérios.\n"
+                        + "• Chance baixa em cobre/ferro/redstone.\n"
+                        + "• Chance melhor em ouro/lápis.\n"
+                        + "• Melhor chance em diamante/esmeralda.\n\n"
+                        + "Receitas\n"
+                        + "• Lâmina: essência + diamante + graveto.\n"
+                        + "• Machado: 2 essências + graveto.\n"
+                        + "• Peitoral: peitoral de diamante + 4 essências.\n\n"
+                        + "Eventos\n"
+                        + "• Wither: Coração Abissal + 8 essências.\n"
+                        + "• Dragon: Coração do Fim + 12 essências.",
                 index -> {
                     if (index == 0) sendGuide(player);
                     else if (index == 1 && player.hasPermission("nemeton.admin")) giveShowcase(player);
@@ -170,11 +179,11 @@ public final class NemetonPlusService implements Listener, TabExecutor {
             return;
         }
         player.sendMessage("§d§lItens Nemeton+");
-        player.sendMessage("§fEssência do Nemeton §7— chance ao minerar minérios; maior em diamante/esmeralda.");
+        player.sendMessage("§fEssência do Nemeton §7— chance rara ao minerar minérios; maior em diamante/esmeralda.");
         player.sendMessage("§fLâmina do Nemeton §7— essência + diamante + graveto.");
         player.sendMessage("§fMachado do Guardião §7— duas essências + graveto.");
-        player.sendMessage("§fPeitoral Sentinela §7— peitoral de diamante cercado por essências.");
-        player.sendMessage("§fWither/Dragon §7— deixam corações especiais para eventos comunitários.");
+        player.sendMessage("§fPeitoral Sentinela §7— peitoral de diamante cercado por 4 essências.");
+        player.sendMessage("§fWither/Dragon §7— deixam corações especiais e essências para eventos comunitários.");
     }
 
     private void giveShowcase(Player player) {

@@ -80,7 +80,9 @@ public final class TradeService implements Listener, TabExecutor {
         }
         if (session.bedrockSafe) {
             event.setCancelled(true);
-            player.sendMessage("§eEsta troca está em modo Bedrock seguro. Use §f/troca oferecer§e, §f/troca ver§e e §f/troca aceitar§e.");
+            if (!openBedrockTradeMenu(player, session)) {
+                player.sendMessage("§eEsta troca envolve Bedrock. Use §f/troca abrir§e para ver o painel seguro.");
+            }
             return;
         }
         int raw = event.getRawSlot();
@@ -330,6 +332,20 @@ public final class TradeService implements Listener, TabExecutor {
     }
 
     private void usage(Player player) {
+        if (BedrockForms.isBedrock(player) && BedrockForms.sendSimple(plugin, player, "Troca",
+                "A troca no Bedrock usa uma tela nativa.\n\n"
+                        + "1. Escolha um jogador.\n"
+                        + "2. Segure o item que quer oferecer.\n"
+                        + "3. Toque em \"Oferecer item da mão\".\n"
+                        + "4. Revise as duas ofertas e aceite quando estiver certo.\n\n"
+                        + "Você pode fechar a tela para pegar outro item e abrir de novo com /troca.",
+                index -> {
+                    if (index == 0) openExisting(player);
+                    else if (index == 1) showStatus(player);
+                },
+                "Iniciar/abrir troca", "Ver troca atual", "Fechar")) {
+            return;
+        }
         player.sendMessage("§6/troca <jogador> §7— chama alguém para trocar.");
         player.sendMessage("§6/troca aceitar [jogador] §7— aceita convite.");
         player.sendMessage("§6/troca abrir §7— reabre a troca pausada.");
@@ -367,8 +383,6 @@ public final class TradeService implements Listener, TabExecutor {
         if (bedrockSafe) {
             source.sendMessage("§aTroca iniciada em modo Bedrock seguro com " + player.getName() + ".");
             player.sendMessage("§aTroca iniciada em modo Bedrock seguro com " + source.getName() + ".");
-            source.sendMessage("§7Segure um item e use §f/troca oferecer [qtd]§7. Depois §f/troca aceitar§7.");
-            player.sendMessage("§7Segure um item e use §f/troca oferecer [qtd]§7. Depois §f/troca aceitar§7.");
             showStatus(source);
             showStatus(player);
         } else {
@@ -389,7 +403,7 @@ public final class TradeService implements Listener, TabExecutor {
         }
         ItemStack[] offer = session.offerOf(player.getUniqueId());
         int slot = firstEmpty(offer);
-        if (slot < 0) throw new IllegalArgumentException("Sua oferta já está cheia. Use /troca limpar se quiser recomeçar.");
+        if (slot < 0) throw new IllegalArgumentException("Sua oferta já está cheia. Limpe sua oferta para recomeçar.");
         ItemStack item = hand.clone();
         item.setAmount(amount);
         offer[slot] = item;
@@ -398,9 +412,7 @@ public final class TradeService implements Listener, TabExecutor {
         session.leftAccepted = false;
         session.rightAccepted = false;
         broadcastSafe(session, "§eOferta atualizada. Ambos precisam aceitar novamente.");
-        showStatus(player);
-        Player other = Bukkit.getPlayer(session.other(player.getUniqueId()));
-        if (other != null) showStatus(other);
+        refreshSafe(session);
     }
 
     private void clearOffer(Player player) {
@@ -411,16 +423,21 @@ public final class TradeService implements Listener, TabExecutor {
         session.leftAccepted = false;
         session.rightAccepted = false;
         broadcastSafe(session, "§eOferta de " + player.getName() + " foi limpa.");
+        refreshSafe(session);
     }
 
     private void acceptSafeOffer(Player player, TradeSession session) {
         session.setAccepted(player.getUniqueId(), true);
         broadcastSafe(session, "§a" + player.getName() + " aceitou a troca.");
         Player other = Bukkit.getPlayer(session.other(player.getUniqueId()));
-        if (other != null && !session.accepted(other.getUniqueId())) {
+        if (other != null && !session.accepted(other.getUniqueId()) && !BedrockForms.isBedrock(other)) {
             other.sendMessage("§7Use §f/troca aceitar§7 se a oferta estiver certa.");
         }
-        if (session.leftAccepted && session.rightAccepted) complete(session);
+        if (session.leftAccepted && session.rightAccepted) {
+            complete(session);
+            return;
+        }
+        refreshSafe(session);
     }
 
     private void showStatus(Player player) {
@@ -430,20 +447,7 @@ public final class TradeService implements Listener, TabExecutor {
             return;
         }
         Player other = Bukkit.getPlayer(session.other(player.getUniqueId()));
-        if (session.bedrockSafe && BedrockForms.sendSimple(plugin, player,
-                "Troca com " + (other == null ? "jogador" : other.getName()),
-                "Sua oferta: " + describe(session.offerOf(player.getUniqueId()))
-                        + "\n\nOferta do outro: " + describe(session.offerOf(session.other(player.getUniqueId())))
-                        + "\n\nAceites: você " + plainYesNo(session.accepted(player.getUniqueId()))
-                        + ", outro " + plainYesNo(session.accepted(session.other(player.getUniqueId())))
-                        + "\n\nUse o item na mão para oferecer pelo botão abaixo.",
-                index -> handleBedrockTradeButton(player, index),
-                "Oferecer item da mão",
-                "Aceitar troca",
-                "Limpar minha oferta",
-                "Cancelar troca",
-                "Fechar")) {
-            player.sendMessage("§7Interface Bedrock de troca aberta.");
+        if (session.bedrockSafe && openBedrockTradeMenu(player, session)) {
             return;
         }
         player.sendMessage("§8§m                                                ");
@@ -453,6 +457,37 @@ public final class TradeService implements Listener, TabExecutor {
         player.sendMessage("§7Aceites: você " + yesNo(session.accepted(player.getUniqueId())) + "§7, outro " + yesNo(session.accepted(session.other(player.getUniqueId()))));
         if (session.bedrockSafe) player.sendMessage("§7Comandos: §f/troca oferecer [qtd]§7, §f/troca limpar§7, §f/troca aceitar§7, §f/troca cancelar§7.");
         player.sendMessage("§8§m                                                ");
+    }
+
+    private boolean openBedrockTradeMenu(Player player, TradeSession session) {
+        if (!session.bedrockSafe || !BedrockForms.isBedrock(player)) return false;
+        Player other = Bukkit.getPlayer(session.other(player.getUniqueId()));
+        String otherName = other == null ? "jogador" : other.getName();
+        String hand = describeHand(player);
+        String content = "Negociação segura com " + otherName + ".\n\n"
+                + "Sua oferta:\n" + describeLines(session.offerOf(player.getUniqueId())) + "\n\n"
+                + "Oferta do outro:\n" + describeLines(session.offerOf(session.other(player.getUniqueId()))) + "\n\n"
+                + "Aceites: você " + plainYesNo(session.accepted(player.getUniqueId()))
+                + " • outro " + plainYesNo(session.accepted(session.other(player.getUniqueId()))) + "\n\n"
+                + "Item na mão: " + hand + "\n"
+                + "Você pode fechar esta tela, pegar outro item no inventário e abrir de novo com /troca.";
+        return BedrockForms.sendSimple(plugin, player,
+                "Troca • " + otherName,
+                content,
+                index -> handleBedrockTradeButton(player, index),
+                "📦 Oferecer item da mão",
+                "✅ Aceitar troca",
+                "♻ Limpar minha oferta",
+                "🔄 Atualizar tela",
+                "❌ Cancelar troca",
+                "Fechar");
+    }
+
+    private void refreshSafe(TradeSession session) {
+        Player left = Bukkit.getPlayer(session.left);
+        Player right = Bukkit.getPlayer(session.right);
+        if (left != null) showStatus(left);
+        if (right != null) showStatus(right);
     }
 
     private void handleBedrockTradeButton(Player player, int index) {
@@ -465,11 +500,14 @@ public final class TradeService implements Listener, TabExecutor {
                     acceptSafeOffer(player, session);
                 }
                 case 2 -> clearOffer(player);
-                case 3 -> cancel(player);
+                case 3 -> showStatus(player);
+                case 4 -> cancel(player);
                 default -> { }
             }
         } catch (IllegalArgumentException exception) {
             player.sendMessage("§c" + exception.getMessage());
+            TradeSession session = sessionsByPlayer.get(player.getUniqueId());
+            if (session != null) Bukkit.getScheduler().runTaskLater(plugin, () -> openBedrockTradeMenu(player, session), 10L);
         }
     }
 
@@ -485,6 +523,21 @@ public final class TradeService implements Listener, TabExecutor {
             parts.add(item.getAmount() + "x " + pretty(item.getType()));
         }
         return parts.isEmpty() ? "nada" : String.join(", ", parts);
+    }
+
+    private String describeLines(ItemStack[] items) {
+        List<String> parts = new ArrayList<>();
+        for (ItemStack item : items) {
+            if (item == null || item.getType() == Material.AIR) continue;
+            parts.add("• " + item.getAmount() + "x " + pretty(item.getType()));
+        }
+        return parts.isEmpty() ? "• nada ainda" : String.join("\n", parts);
+    }
+
+    private String describeHand(Player player) {
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        if (hand == null || hand.getType() == Material.AIR) return "mão vazia";
+        return hand.getAmount() + "x " + pretty(hand.getType());
     }
 
     private String pretty(Material material) {
