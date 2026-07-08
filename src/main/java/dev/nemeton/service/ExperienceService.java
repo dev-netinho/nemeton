@@ -18,11 +18,13 @@ public final class ExperienceService {
     private final JavaPlugin plugin;
     private final Settings settings;
     private final NamespacedKey starterKitKey;
+    private final NamespacedKey lascadoKitKey;
 
     public ExperienceService(JavaPlugin plugin, Settings settings) {
         this.plugin = plugin;
         this.settings = settings;
         this.starterKitKey = new NamespacedKey(plugin, "starter_kit_claimed");
+        this.lascadoKitKey = new NamespacedKey(plugin, "lascado_kit_claimed");
     }
 
     public void welcome(Player player) {
@@ -125,6 +127,23 @@ public final class ExperienceService {
 
     public void claimStarterKit(Player player) {
         claimStarterKit(player, false);
+    }
+
+    public void claimLascadoKit(Player player) {
+        if (player.getPersistentDataContainer().has(lascadoKitKey, PersistentDataType.BYTE)) {
+            player.sendMessage("§eVocê já pegou o kit lascado.");
+            return;
+        }
+        player.getPersistentDataContainer().set(lascadoKitKey, PersistentDataType.BYTE, (byte) 1);
+        addOrDrop(player, named(Material.COMPASS, "§eBússola do Nemeton", "§7Aponte para o farol do mundo."));
+        addOrDrop(player, named(Material.COPPER_SWORD, "§6Espada Lascada de Cobre", "§7Pra quem começa torto, mas começa equipado."));
+        addOrDrop(player, named(Material.COPPER_PICKAXE, "§6Picareta Lascada de Cobre", "§7Mesma coragem do kit inicial, só que mais brilhosa."));
+        addOrDrop(player, named(Material.COPPER_AXE, "§6Machado Lascado de Cobre", "§7Serve pra madeira e pra autoestima."));
+        addOrDrop(player, new ItemStack(Material.BREAD, 16));
+        addOrDrop(player, new ItemStack(Material.TORCH, 24));
+        addOrDrop(player, new ItemStack(Material.OAK_SAPLING, 4));
+        addOrDrop(player, named(Material.COPPER_BOOTS, "§6Botas Lascadas de Cobre", "§7Pra sair do Nemeton fazendo barulho."));
+        player.sendMessage("§aKit lascado entregue. Agora vai, cobre boy.");
     }
 
     private void claimStarterKit(Player player, boolean quiet) {

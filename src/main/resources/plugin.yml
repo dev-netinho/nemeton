@@ -28,8 +28,8 @@ commands:
     description: Recebe novamente o guia do Nemeton.
     usage: /guia
   kit:
-    description: Recebe uma vez o kit inicial da alpha.
-    usage: /kit
+    description: Recebe uma vez o kit inicial da alpha ou o kit lascado de cobre.
+    usage: /kit [lascado]
   lapide:
     description: Mostra a última lápide e aponta a bússola.
     usage: /lapide

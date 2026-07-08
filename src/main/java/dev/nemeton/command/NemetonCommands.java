@@ -40,12 +40,24 @@ public final class NemetonCommands implements TabExecutor {
                 case "guia" -> {
                     if (!bedrockGuide(player)) experience.giveGuide(player, false);
                 }
-                case "kit" -> experience.claimStarterKit(player);
+                case "kit" -> kit(player, args);
                 default -> { return false; }
             }
         } catch (IllegalArgumentException | DateTimeException exception) { player.sendMessage("§c" + exception.getMessage()); }
         catch (Exception exception) { player.sendMessage("§cOcorreu um erro interno. A administração foi avisada."); Bukkit.getLogger().severe("Nemeton command: " + exception); }
         return true;
+    }
+
+    private void kit(Player player, String[] args) {
+        if (args.length == 0) {
+            experience.claimStarterKit(player);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("lascado")) {
+            experience.claimLascadoKit(player);
+            return;
+        }
+        throw new IllegalArgumentException("Use /kit ou /kit lascado.");
     }
 
     private void clan(Player player, String[] args) {
@@ -352,6 +364,7 @@ public final class NemetonCommands implements TabExecutor {
             case "santuario" -> List.of("ajuda", "marcar", "expandir", "remover", "confiar", "desconfiar");
             case "raid" -> List.of("ajuda", "declarar", "agendar", "status", "premio");
             case "menu", "painel" -> List.of("clan", "santuario", "troca", "mapa", "mochila", "mods");
+            case "kit" -> List.of("lascado");
             default -> List.of(); };
     }
 }
