@@ -493,7 +493,7 @@ public final class TradeService implements Listener, TabExecutor {
     private void handleBedrockTradeButton(Player player, int index) {
         try {
             switch (index) {
-                case 0 -> offerHeld(player, new String[]{"oferecer", "all"});
+                case 0 -> openBedrockOfferAmount(player);
                 case 1 -> {
                     TradeSession session = sessionsByPlayer.get(player.getUniqueId());
                     if (session == null) throw new IllegalArgumentException("Você não tem troca aberta.");
@@ -508,6 +508,26 @@ public final class TradeService implements Listener, TabExecutor {
             player.sendMessage("§c" + exception.getMessage());
             TradeSession session = sessionsByPlayer.get(player.getUniqueId());
             if (session != null) Bukkit.getScheduler().runTaskLater(plugin, () -> openBedrockTradeMenu(player, session), 10L);
+        }
+    }
+
+    private void openBedrockOfferAmount(Player player) {
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        String held = hand == null || hand.getType() == Material.AIR ? "mão vazia" : hand.getAmount() + "x " + pretty(hand.getType());
+        if (!BedrockForms.sendInput(plugin, player, "Oferecer item",
+                values -> {
+                    try {
+                        String amount = values.get(0).trim();
+                        if (amount.isBlank()) amount = "all";
+                        offerHeld(player, new String[]{"oferecer", amount});
+                    } catch (IllegalArgumentException exception) {
+                        player.sendMessage("§c" + exception.getMessage());
+                        TradeSession session = sessionsByPlayer.get(player.getUniqueId());
+                        if (session != null) Bukkit.getScheduler().runTaskLater(plugin, () -> openBedrockTradeMenu(player, session), 10L);
+                    }
+                },
+                new BedrockForms.Input("Quantidade do item na mão (" + held + ")", "all", "all"))) {
+            offerHeld(player, new String[]{"oferecer", "all"});
         }
     }
 

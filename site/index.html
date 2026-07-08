@@ -108,39 +108,45 @@
             <p class="kicker">Essências do Nemeton</p>
             <h2>O brilho raro que alimenta o Vanilla+.</h2>
           </div>
-          <p>As essências são a moeda de criação dos itens autorais. Elas não compram vitória pronta: você encontra jogando, minerando e vencendo eventos do próprio survival.</p>
+          <p>As essências são o material de forja do Nemeton+. Elas aparecem jogando de verdade: mineração, Wither, Dragon e eventos comunitários.</p>
         </header>
         <div class="essence-layout reveal">
           <article class="essence-source">
             <span class="source-mark">✦</span>
             <h3>Como conseguir</h3>
-            <p>Minere minérios do mundo normal. Cobre, ferro e redstone têm chance baixa; ouro e lápis melhoram um pouco; diamante e esmeralda são os melhores achados.</p>
-            <p>Eventos também deixam lembranças: Wither solta Coração Abissal e essências; Dragon solta Coração do Fim e mais essências para a comunidade.</p>
+            <p>Minere minérios do mundo normal. Cobre tem chance pequena; ferro e redstone sobem um pouco; ouro e lápis são melhores; diamante e esmeralda são os achados mais promissores.</p>
+            <p>Eventos também importam: Wither deixa Coração Abissal + 16 essências; Dragon deixa Coração do Fim + 24 essências. Esses corações viram peças de temporada.</p>
           </article>
           <div class="recipe-grid" aria-label="Usos das essências">
             <article>
               <span>01</span>
               <h3>Essência do Nemeton</h3>
-              <p>Drop raro de mineração. É o ingrediente base das receitas autorais.</p>
+              <p>Drop raro de mineração. Ametista comum não substitui uma essência verdadeira.</p>
               <code>/mods itens</code>
             </article>
             <article>
               <span>02</span>
               <h3>Lâmina do Nemeton</h3>
-              <p>Essência + diamante + graveto. Uma espada forte, mas ainda dentro da lógica vanilla.</p>
-              <code>E + D + graveto</code>
+              <p>Espada de diamante + 4 essências. Sharpness IV, Looting II e durabilidade para virar item de uso real.</p>
+              <code>4E + espada</code>
             </article>
             <article>
               <span>03</span>
               <h3>Machado do Guardião</h3>
-              <p>Duas essências e graveto. Arma/ferramenta cerimonial para quem encara combate.</p>
-              <code>2E + graveto</code>
+              <p>Machado de diamante + Coração Abissal + 3 essências. A peça de quem venceu um Wither em evento.</p>
+              <code>3E + Wither</code>
             </article>
             <article>
               <span>04</span>
               <h3>Peitoral Sentinela</h3>
-              <p>Peitoral de diamante cercado por essências, com trim e brilho de peça rara.</p>
-              <code>4E + peitoral</code>
+              <p>Peitoral de diamante + Coração do Fim + 7 essências. Proteção IV, Mending e trim de relíquia.</p>
+              <code>7E + Dragon</code>
+            </article>
+            <article>
+              <span>05</span>
+              <h3>Correção de item</h3>
+              <p>Se um item antigo voltar da lápide parecendo ametista normal, use o reparador para restaurar meta/visual.</p>
+              <code>/mods restaurar</code>
             </article>
           </div>
         </div>
@@ -158,30 +164,30 @@
         <div class="resident-stage reveal">
           <div class="npc-roster" role="list" aria-label="Moradores do Nemeton">
             <button class="npc-card active" type="button" role="listitem" data-npc="eira" aria-pressed="true">
-              <span class="npc-portrait npc-eira" aria-hidden="true"><img src="https://minotar.net/armor/body/Eira/256.png" alt="" loading="lazy" decoding="async" /><b>📖</b></span>
+              <span class="npc-portrait npc-eira" aria-hidden="true"><img src="/assets/npcs/eira.png" alt="" loading="lazy" decoding="async" /><b>📖</b></span>
               <span><strong>Eira</strong><small>guia e primeiros passos</small></span>
             </button>
             <button class="npc-card" type="button" role="listitem" data-npc="mara" aria-pressed="false">
-              <span class="npc-portrait npc-mara" aria-hidden="true"><img src="https://minotar.net/armor/body/Mara/256.png" alt="" loading="lazy" decoding="async" /><b>💎</b></span>
+              <span class="npc-portrait npc-mara" aria-hidden="true"><img src="/assets/npcs/mara.png" alt="" loading="lazy" decoding="async" /><b>💎</b></span>
               <span><strong>Mara</strong><small>trocas entre jogadores</small></span>
             </button>
             <button class="npc-card" type="button" role="listitem" data-npc="borin" aria-pressed="false">
-              <span class="npc-portrait npc-borin" aria-hidden="true"><img src="https://minotar.net/armor/body/amenic/256.png" alt="" loading="lazy" decoding="async" /><b>⚔</b></span>
+              <span class="npc-portrait npc-borin" aria-hidden="true"><img src="/assets/npcs/borin.png" alt="" loading="lazy" decoding="async" /><b>⚔</b></span>
               <span><strong>Borin</strong><small>clãs, claims e raids</small></span>
             </button>
             <button class="npc-card" type="button" role="listitem" data-npc="tarin" aria-pressed="false">
-              <span class="npc-portrait npc-tarin" aria-hidden="true"><img src="https://minotar.net/armor/body/Tarin/256.png" alt="" loading="lazy" decoding="async" /><b>🧭</b></span>
+              <span class="npc-portrait npc-tarin" aria-hidden="true"><img src="/assets/npcs/tarin.png" alt="" loading="lazy" decoding="async" /><b>🧭</b></span>
               <span><strong>Tarin</strong><small>exploração e proteção</small></span>
             </button>
             <button class="npc-card" type="button" role="listitem" data-npc="nara" aria-pressed="false">
-              <span class="npc-portrait npc-nara" aria-hidden="true"><img src="https://minotar.net/armor/body/Nara/256.png" alt="" loading="lazy" decoding="async" /><b>✦</b></span>
+              <span class="npc-portrait npc-nara" aria-hidden="true"><img src="/assets/npcs/nara.png" alt="" loading="lazy" decoding="async" /><b>✦</b></span>
               <span><strong>Nara</strong><small>Vanilla+ e itens autorais</small></span>
             </button>
           </div>
 
           <article class="npc-dialogue" aria-live="polite">
             <figure class="dialogue-portrait">
-              <img id="npc-avatar" src="https://minotar.net/armor/body/Eira/256.png" alt="Eira, guia do Nemeton" loading="lazy" decoding="async" />
+              <img id="npc-avatar" src="/assets/npcs/eira.png" alt="Eira, guia do Nemeton" loading="lazy" decoding="async" />
             </figure>
             <div class="dialogue-copy">
               <div class="dialogue-speaker"><span id="npc-role">Guia do Nemeton</span><strong id="npc-name">Eira</strong></div>
@@ -262,6 +268,7 @@
               <div class="raid-explainer"><strong>Vanilla+, não modpack obrigatório.</strong><p>O Nemeton+ usa plugin, datapack e resource pack para adicionar surpresas leves sem expulsar Java vanilla, Lunar ou Bedrock.</p></div>
               <button class="command copy-button" data-copy="/mods"><code>/mods</code><span><strong>Abra o guia Vanilla+.</strong> Explica minimapa, packs, limitações do cross-play e o conteúdo autoral ativo.</span></button>
               <button class="command copy-button" data-copy="/mods itens"><code>/mods itens</code><span><strong>Veja receitas e drops.</strong> Mostra essências, armas, armadura e recompensas de boss.</span></button>
+              <button class="command copy-button" data-copy="/mods restaurar"><code>/mods restaurar</code><span><strong>Corrige item antigo.</strong> Reaplica nome, modelo e dados de itens Nemeton+ que voltarem bugados.</span></button>
               <button class="command copy-button" data-copy="/mapa"><code>/mapa</code><span><strong>Orientação cross-play.</strong> Bedrock usa mapa nativo e menu; Java/Lunar também pode ativar minimap no cliente.</span></button>
               <button class="command copy-button" data-copy="/mochila"><code>/mochila</code><span><strong>Bolsa pessoal.</strong> Item craftável com 27 espaços, sem precisar instalar modpack pesado.</span></button>
             </div>

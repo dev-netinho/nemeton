@@ -39,7 +39,7 @@ const residents = {
   eira: {
     name: "Eira",
     role: "Guia do Nemeton",
-    portrait: "https://minotar.net/armor/body/Eira/256.png",
+    portrait: "/assets/npcs/eira.png",
     quote: "“Antes de partir, pegue seu kit e guarde o caminho de volta. A clareira sempre será uma zona segura.”",
     commands: ["/menu", "/guia", "/kit", "/mapa", "/nemeton"],
     tip: "Comece por /menu. No Bedrock, ele abre uma interface nativa; no Java, organiza os mesmos caminhos.",
@@ -47,7 +47,7 @@ const residents = {
   mara: {
     name: "Mara",
     role: "Mercadora",
-    portrait: "https://minotar.net/armor/body/Mara/256.png",
+    portrait: "/assets/npcs/mara.png",
     quote: "“Aqui, valor nasce do acordo entre pessoas. Sem banco infinito, sem loja que fabrica riqueza do nada.”",
     commands: ["/troca <jogador>", "/comercio <jogador>"],
     tip: "A troca só termina quando os dois lados confirmam. No Bedrock, o fluxo abre uma tela nativa com botões em vez de depender de chat.",
@@ -55,7 +55,7 @@ const residents = {
   borin: {
     name: "Borin",
     role: "Mestre dos Clãs",
-    portrait: "https://minotar.net/armor/body/amenic/256.png",
+    portrait: "/assets/npcs/borin.png",
     quote: "“Uma bandeira dá aliados e território. Também avisa ao mundo que você escolheu viver com algum risco.”",
     commands: ["/clan criar", "/clan convidar", "/clan claim", "/clan chat", "/raid status"],
     tip: "Clãs podem atacar e ser atacados. Raids têm horário, aposta e restauração; não são grife sem regra.",
@@ -63,7 +63,7 @@ const residents = {
   tarin: {
     name: "Tarin",
     role: "Batedor",
-    portrait: "https://minotar.net/armor/body/Tarin/256.png",
+    portrait: "/assets/npcs/tarin.png",
     quote: "“Depois dos portões começa o survival. Marque seu refúgio, leve uma mochila e não perca a bússola.”",
     commands: ["/santuario marcar", "/santuario confiar", "/mochila", "/lapide"],
     tip: "O santuário protege até quatro chunks conectados. Você pode liberar e remover pessoas de confiança quando quiser.",
@@ -71,10 +71,10 @@ const residents = {
   nara: {
     name: "Nara",
     role: "Artesã do Nemeton+",
-    portrait: "https://minotar.net/armor/body/Nara/256.png",
-    quote: "“O mundo continua reconhecível. Eu só transformo mineração, boss e exploração em pequenas descobertas novas.”",
-    commands: ["/mods", "/mods itens"],
-    tip: "Essências caem raramente de minérios e também aparecem em eventos de Wither/Dragon. Use /mods itens para ver receitas.",
+    portrait: "/assets/npcs/nara.png",
+    quote: "“O mundo continua reconhecível. Eu só faço uma coisa: transformar mineração e boss em relíquia que dá vontade de usar.”",
+    commands: ["/mods", "/mods itens", "/mods restaurar"],
+    tip: "Essências vêm de minérios. Corações vêm do Wither/Dragon. Se um item antigo voltar bugado da lápide, /mods restaurar repara.",
   },
 };
 

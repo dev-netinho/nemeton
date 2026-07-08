@@ -46,15 +46,7 @@ public final class BedrockForms {
             });
             builderInterface.getMethod("validResultHandler", Consumer.class).invoke(builder, handler);
 
-            Object api = Class.forName("org.geysermc.floodgate.api.FloodgateApi").getMethod("getInstance").invoke(null);
-            for (Method method : api.getClass().getMethods()) {
-                if (!method.getName().equals("sendForm") || method.getParameterCount() != 2) continue;
-                Class<?>[] parameters = method.getParameterTypes();
-                if (parameters[0] == UUID.class && parameters[1].isInstance(builder)) {
-                    Object sent = method.invoke(api, player.getUniqueId(), builder);
-                    return Boolean.TRUE.equals(sent);
-                }
-            }
+            return sendForm(player, buildForm(builder));
         } catch (ReflectiveOperationException | LinkageError exception) {
             plugin.getLogger().log(Level.FINE, "Formulários Bedrock indisponíveis; usando fallback em chat", exception);
         }
@@ -80,7 +72,7 @@ public final class BedrockForms {
                 }
             });
             builderInterface.getMethod("validResultHandler", Consumer.class).invoke(builder, handler);
-            return sendForm(player, builder);
+            return sendForm(player, buildForm(builder));
         } catch (ReflectiveOperationException | LinkageError exception) {
             plugin.getLogger().log(Level.FINE, "Modal Bedrock indisponível; usando fallback em chat", exception);
             return false;
@@ -101,34 +93,50 @@ public final class BedrockForms {
             Consumer<Object> handler = response -> Bukkit.getScheduler().runTask(plugin, () -> {
                 try {
                     List<String> values = new ArrayList<>(inputs.length);
-                    for (int i = 0; i < inputs.length; i++) {
-                        Object value = response.getClass().getMethod("getInput", int.class).invoke(response, i);
-                        values.add(value == null ? "" : value.toString());
-                    }
+                    for (int i = 0; i < inputs.length; i++) values.add(readInput(response, i));
                     onSubmit.accept(values);
                 } catch (ReflectiveOperationException exception) {
                     plugin.getLogger().log(Level.WARNING, "Falha ao ler formulário Bedrock", exception);
                 }
             });
             builderInterface.getMethod("validResultHandler", Consumer.class).invoke(builder, handler);
-            return sendForm(player, builder);
+            return sendForm(player, buildForm(builder));
         } catch (ReflectiveOperationException | LinkageError exception) {
             plugin.getLogger().log(Level.FINE, "Formulário Bedrock indisponível; usando fallback em chat", exception);
             return false;
         }
     }
 
-    private static boolean sendForm(Player player, Object builder) throws ReflectiveOperationException {
+    private static Object buildForm(Object builder) throws ReflectiveOperationException {
+        try {
+            return builder.getClass().getMethod("build").invoke(builder);
+        } catch (NoSuchMethodException ignored) {
+            return builder;
+        }
+    }
+
+    private static boolean sendForm(Player player, Object form) throws ReflectiveOperationException {
         Object api = Class.forName("org.geysermc.floodgate.api.FloodgateApi").getMethod("getInstance").invoke(null);
         for (Method method : api.getClass().getMethods()) {
             if (!method.getName().equals("sendForm") || method.getParameterCount() != 2) continue;
             Class<?>[] parameters = method.getParameterTypes();
-            if (parameters[0] == UUID.class && parameters[1].isInstance(builder)) {
-                Object sent = method.invoke(api, player.getUniqueId(), builder);
+            if (parameters[0] == UUID.class && parameters[1].isInstance(form)) {
+                Object sent = method.invoke(api, player.getUniqueId(), form);
                 return Boolean.TRUE.equals(sent);
             }
         }
         return false;
+    }
+
+    private static String readInput(Object response, int index) throws ReflectiveOperationException {
+        for (String methodName : List.of("asInput", "getInput", "input")) {
+            try {
+                Object value = response.getClass().getMethod(methodName, int.class).invoke(response, index);
+                return value == null ? "" : value.toString();
+            } catch (NoSuchMethodException ignored) {
+            }
+        }
+        return "";
     }
 
     public record Input(String text, String placeholder, String defaultValue) {
