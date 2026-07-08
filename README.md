@@ -72,5 +72,6 @@ Convide o bot com os escopos `bot` e `applications.commands` e conceda apenas `M
 7. Comece com pregeneration pequena: `chunky radius 1500`, valide TPS/espaço, depois aumente para `3000` e só então considere `5000`.
 8. Agende `scripts/backup.sh` a cada seis horas e restaure um snapshot em diretório limpo antes do alpha.
 9. Clãs nascem combatentes e aceitam raids agendadas; santuários pessoais permanecem fora de qualquer raid. Para pausar emergencialmente novas declarações, use `war.raids-enabled: false`.
+10. Configure o DNS público com `scripts/configure-cloudflare-dns.py`: Bedrock em `b.nemeton.olua.me:59460`; Java em `nemeton.olua.me` via SRV depois de criar o túnel TCP público.
 
 Detalhes de arquitetura e operação estão em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) e [docs/RUNBOOK.md](docs/RUNBOOK.md).

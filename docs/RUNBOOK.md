@@ -4,6 +4,7 @@
 
 - Verificar `docker compose -f compose.yml ps` e o histórico de alertas.
 - Testar Java em `100.123.99.34:25565` dentro da Tailnet e Bedrock público em `documents-voicing.gl.at.ply.gg:59460`.
+- Endereços públicos desejados: Java em `nemeton.olua.me` via registro SRV para o túnel TCP do Playit; Bedrock em `b.nemeton.olua.me`, porta `59460`, como CNAME DNS-only para o túnel UDP do Playit.
 - Confirmar que o `playit` está rodando: `ps -p "$(cat runtime/playit/state/playit.pid)" -o pid,etime,cmd`.
 - Comandos da experiência alpha: `/menu`, `/guia`, `/kit`, `/nemeton`, `/spawn`, `/mapa`, `/mochila`, `/lapide`, `/troca`, `/mods`, `/mods itens`, `/santuario ajuda` e `/clan ajuda`.
 - Em troca com Bedrock, evitar a interface Java: o plugin abre formulário nativo quando possível. Se o jogador fechar ou o Floodgate não responder, usar `/troca oferecer [qtd]`, `/troca ver`, `/troca aceitar` e `/troca cancelar`.
@@ -27,6 +28,34 @@ O datapack Vanilla+ é baixado por `scripts/fetch-content.sh` com versão e SHA-
 O pack visual é gerado por `scripts/build-resource-packs.py`. Publique `resourcepacks/dist/Nemeton-Java.zip` antes de reiniciar o plugin, pois o Java baixa pela URL raw do GitHub. No Bedrock, copie `resourcepacks/dist/Nemeton-Bedrock.mcpack` para `plugins/Geyser-Spigot/packs/` e `resourcepacks/geyser/nemeton-items.json` para `plugins/Geyser-Spigot/custom_mappings/`, depois reinicie o Minecraft/Geyser.
 
 O squaremap escuta apenas em `127.0.0.1:8100`. `scripts/start-map-tunnel.sh` cria um Quick Tunnel isolado (sem ler os túneis Cloudflare dos demais projetos) e grava a URL atual em `plugins/NemetonCore/map-url.txt`, lida dinamicamente por `/mapa`.
+
+## DNS de divulgação
+
+O domínio base é `olua.me`, gerenciado no Cloudflare. O proxy laranja da Cloudflare não serve Minecraft comum; todos os registros do Nemeton precisam ficar como **DNS only**.
+
+Quando houver token Cloudflare com `Zone:Read` e `DNS:Edit`, configure o Bedrock com:
+
+```bash
+CLOUDFLARE_API_TOKEN='...' scripts/configure-cloudflare-dns.py
+```
+
+Depois de criar o túnel TCP Java no Playit, rode novamente com o host/porta do túnel:
+
+```bash
+CLOUDFLARE_API_TOKEN='...' \
+NEMETON_JAVA_HOST='host-java-do-playit.ply.gg' \
+NEMETON_JAVA_PORT='porta-java' \
+scripts/configure-cloudflare-dns.py
+```
+
+Validação esperada:
+
+```bash
+dig +short b.nemeton.olua.me CNAME
+dig +short _minecraft._tcp.nemeton.olua.me SRV
+```
+
+No Bedrock, divulgar `b.nemeton.olua.me` com a porta `59460`. No Java, divulgar apenas `nemeton.olua.me` depois que o SRV estiver propagado e o túnel TCP testado de fora da Tailnet.
 
 ## Backup
 
