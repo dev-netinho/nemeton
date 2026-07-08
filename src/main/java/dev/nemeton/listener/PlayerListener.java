@@ -34,13 +34,24 @@ public final class PlayerListener implements Listener {
         experience.welcome(event.getPlayer());
     }
     @EventHandler public void onRespawn(PlayerRespawnEvent event) {
+        boolean raidRespawn = raids.respawnLock(event.getPlayer().getUniqueId()).isPresent();
+        boolean personalRespawn = (event.isBedSpawn() || event.isAnchorSpawn()) && !event.isMissingRespawnBlock();
         Location hub = hubLocation();
-        if (hub != null) event.setRespawnLocation(hub);
+
+        if (raidRespawn) {
+            if (hub != null) event.setRespawnLocation(hub);
+        } else if (event.getRespawnReason() == PlayerRespawnEvent.RespawnReason.DEATH && !personalRespawn && hub != null) {
+            event.setRespawnLocation(hub);
+        }
 
         raids.respawnLock(event.getPlayer().getUniqueId()).ifPresentOrElse(until -> {
             event.getPlayer().sendMessage("§eVocê retornará à raid após " + Math.max(1, java.time.Duration.between(java.time.Instant.now(), until).toSeconds()) + " segundos.");
             raids.returnAfterLock(event.getPlayer());
-        }, () -> event.getPlayer().sendMessage("§6Você renasceu no §eNemeton§6."));
+        }, () -> {
+            if (event.getRespawnReason() != PlayerRespawnEvent.RespawnReason.DEATH) return;
+            if (personalRespawn) event.getPlayer().sendMessage("§aVocê renasceu no seu ponto de descanso.");
+            else event.getPlayer().sendMessage("§6Você renasceu no §eNemeton§6.");
+        });
     }
 
     private Location hubLocation() {
