@@ -23,6 +23,10 @@ public final class DiscordBridge {
     private static final long VIEW_CHANNEL = 1L << 10;
     private static final long SEND_MESSAGES = 1L << 11;
     private static final long READ_HISTORY = 1L << 16;
+    private static final long CREATE_PUBLIC_THREADS = 1L << 35;
+    private static final long CREATE_PRIVATE_THREADS = 1L << 36;
+    private static final long SEND_MESSAGES_IN_THREADS = 1L << 38;
+    private static final long THREAD_PERMISSIONS = CREATE_PUBLIC_THREADS | CREATE_PRIVATE_THREADS | SEND_MESSAGES_IN_THREADS;
     private static final long CONNECT = 1L << 20;
     private static final long SPEAK = 1L << 21;
     private final Settings.Discord config;
@@ -31,6 +35,8 @@ public final class DiscordBridge {
     private final Map<String, String> lastMessageByChannel = new ConcurrentHashMap<>();
     private final Map<UUID, String> appliedClanIdentity = new ConcurrentHashMap<>();
     private final AtomicBoolean polling = new AtomicBoolean();
+    private final AtomicBoolean suggestionsPolling = new AtomicBoolean();
+    private volatile String lastSuggestionMessageId;
 
     public DiscordBridge(Settings.Discord config) { this.config = config; }
     public boolean enabled() { return config.enabled() && !config.botToken().isBlank() && !config.guildId().isBlank(); }
@@ -42,7 +48,7 @@ public final class DiscordBridge {
                 .thenCompose(role -> {
                     String roleId = role.path("id").asText();
                     List<Map<String, Object>> textPermissions = new ArrayList<>();
-                    textPermissions.add(overwrite(config.guildId(), 0, VIEW_CHANNEL, 0));
+                    textPermissions.add(overwrite(config.guildId(), 0, 0, VIEW_CHANNEL | THREAD_PERMISSIONS));
                     textPermissions.add(overwrite(roleId, 0, VIEW_CHANNEL | SEND_MESSAGES | READ_HISTORY, 0));
                     addBotOverwrite(textPermissions, VIEW_CHANNEL | SEND_MESSAGES | READ_HISTORY);
                     Map<String, Object> text = new HashMap<>(Map.of("name", "🏰・clã-" + clan.tag().toLowerCase(Locale.ROOT), "type", 0, "permission_overwrites", textPermissions,
@@ -50,7 +56,7 @@ public final class DiscordBridge {
                     if (!config.clansCategoryId().isBlank()) text.put("parent_id", config.clansCategoryId());
                     return post("/guilds/" + config.guildId() + "/channels", text).thenCompose(textChannel -> {
                         List<Map<String, Object>> voicePermissions = new ArrayList<>();
-                        voicePermissions.add(overwrite(config.guildId(), 0, VIEW_CHANNEL | CONNECT, 0));
+                        voicePermissions.add(overwrite(config.guildId(), 0, 0, VIEW_CHANNEL | CONNECT));
                         voicePermissions.add(overwrite(roleId, 0, VIEW_CHANNEL | CONNECT | SPEAK, 0));
                         addBotOverwrite(voicePermissions, VIEW_CHANNEL | CONNECT | SPEAK);
                         Map<String, Object> voice = new HashMap<>(Map.of("name", "🔊・" + clan.tag(), "type", 2, "permission_overwrites", voicePermissions));
@@ -115,6 +121,27 @@ public final class DiscordBridge {
             }).exceptionally(error -> null);
         }).toList();
         CompletableFuture.allOf(requests.toArray(CompletableFuture[]::new)).whenComplete((ignored, error) -> polling.set(false));
+    }
+
+    public void pollSuggestionVotes() {
+        if (!enabled() || config.suggestionsChannelId().isBlank() || !suggestionsPolling.compareAndSet(false, true)) return;
+        String path = "/channels/" + config.suggestionsChannelId() + "/messages?limit=50"
+                + (lastSuggestionMessageId == null ? "" : "&after=" + lastSuggestionMessageId);
+        request("GET", path, null).thenCompose(messages -> {
+            if (!messages.isArray() || messages.isEmpty()) return CompletableFuture.completedFuture(null);
+            List<JsonNode> ordered = new ArrayList<>();
+            messages.forEach(ordered::add);
+            ordered.sort(Comparator.comparing(node -> node.path("id").asText()));
+            List<CompletableFuture<JsonNode>> reactions = new ArrayList<>();
+            for (JsonNode message : ordered) {
+                if (message.path("author").path("bot").asBoolean(false)) continue;
+                String messageId = message.path("id").asText();
+                reactions.add(request("PUT", "/channels/" + config.suggestionsChannelId() + "/messages/" + messageId + "/reactions/%E2%9C%85/@me", null));
+                reactions.add(request("PUT", "/channels/" + config.suggestionsChannelId() + "/messages/" + messageId + "/reactions/%E2%9D%8C/@me", null));
+            }
+            String newest = ordered.getLast().path("id").asText();
+            return CompletableFuture.allOf(reactions.toArray(CompletableFuture[]::new)).thenRun(() -> lastSuggestionMessageId = newest);
+        }).exceptionally(error -> null).whenComplete((ignored, error) -> suggestionsPolling.set(false));
     }
 
     private void postMessage(String channel, String message) { post("/channels/" + channel + "/messages", Map.of("content", message.substring(0, Math.min(1900, message.length())))); }

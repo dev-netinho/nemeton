@@ -59,6 +59,7 @@ public final class NemetonPlugin extends JavaPlugin {
             Bukkit.getScheduler().runTaskTimer(this, raids::tick, 20L, 20L); Bukkit.getScheduler().runTaskTimerAsynchronously(this, clans::tickWarStates, 1200L, 1200L);
             Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> discord.pollClanChannels(state.clans(), message ->
                     Bukkit.getScheduler().runTask(this, () -> clans.chatFromDiscord(message.clan(), message.displayName(), message.content()))), 60L, 60L);
+            Bukkit.getScheduler().runTaskTimerAsynchronously(this, discord::pollSuggestionVotes, 80L, 60L);
             DiscordCommands discordCommands = new DiscordCommands(this, discord, state, clans, raids);
             Bukkit.getScheduler().runTaskTimerAsynchronously(this, discordCommands::registerWhenReady, 200L, 200L);
             Bukkit.getScheduler().runTaskTimerAsynchronously(this, clans::syncDiscordRoles, 1200L, 1200L);

@@ -54,6 +54,7 @@ discord:
   clan-member-role-id: ''
   leaders-channel-id: ''
   recruitment-channel-id: ''
+  suggestions-channel-id: ''
   bot-user-id: ''
   intrusion-cooldown-minutes: 10
 

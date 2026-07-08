@@ -22,9 +22,14 @@ ADMINISTRATOR = 1 << 3
 VIEW_CHANNEL = 1 << 10
 SEND_MESSAGES = 1 << 11
 READ_MESSAGE_HISTORY = 1 << 16
+ADD_REACTIONS = 1 << 6
 CONNECT = 1 << 20
 SPEAK = 1 << 21
 USE_APPLICATION_COMMANDS = 1 << 31
+CREATE_PUBLIC_THREADS = 1 << 35
+CREATE_PRIVATE_THREADS = 1 << 36
+SEND_MESSAGES_IN_THREADS = 1 << 38
+THREAD_PERMISSIONS = CREATE_PUBLIC_THREADS | CREATE_PRIVATE_THREADS | SEND_MESSAGES_IN_THREADS
 
 
 def request(token: str, method: str, path: str, body: object | None = None) -> object:
@@ -56,7 +61,7 @@ def overwrite(target_id: str, allow: int = 0, deny: int = 0, target_type: int = 
 
 
 def bot_access(bot_id: str, voice: bool = False) -> dict:
-    allow = VIEW_CHANNEL | READ_MESSAGE_HISTORY | SEND_MESSAGES | USE_APPLICATION_COMMANDS
+    allow = VIEW_CHANNEL | READ_MESSAGE_HISTORY | SEND_MESSAGES | ADD_REACTIONS | USE_APPLICATION_COMMANDS
     if voice:
         allow |= CONNECT | SPEAK
     return overwrite(bot_id, allow=allow, target_type=1)
@@ -175,6 +180,7 @@ def apply_server_config(root: pathlib.Path, result: dict, invite_url: str) -> No
         "clan-member-role-id": repr(result["clan_member_role_id"]),
         "leaders-channel-id": repr(result["leaders_channel_id"]),
         "recruitment-channel-id": repr(result["recruitment_channel_id"]),
+        "suggestions-channel-id": repr(result["suggestions_channel_id"]),
         "bot-user-id": repr(result["bot_user_id"]),
     }
     for key, value in values.items():
@@ -277,6 +283,31 @@ def cleanup_legacy(token: str, guild_id: str, keep: set[str], general_id: str,
             request(token, "DELETE", f"/channels/{category['id']}")
 
 
+def harden_channel_permissions(token: str, guild_id: str, clans_category_id: str) -> None:
+    """Disable ad-hoc threads everywhere and keep old clan rooms private."""
+    channels = request(token, "GET", f"/guilds/{guild_id}/channels")
+    for channel in channels:
+        deny = 0
+        if channel["type"] in {0, 5}:
+            deny |= THREAD_PERMISSIONS
+        if channel.get("parent_id") == clans_category_id:
+            if channel["type"] in {0, 5}:
+                deny |= VIEW_CHANNEL
+            elif channel["type"] == 2:
+                deny |= VIEW_CHANNEL | CONNECT
+        if not deny:
+            continue
+        current = next((item for item in channel.get("permission_overwrites", [])
+                        if item["id"] == guild_id and item["type"] == 0), None)
+        allow_value = int(current.get("allow", "0")) if current else 0
+        deny_value = int(current.get("deny", "0")) if current else 0
+        request(token, "PUT", f"/channels/{channel['id']}/permissions/{guild_id}", {
+            "type": 0,
+            "allow": str(allow_value & ~deny),
+            "deny": str(deny_value | deny),
+        })
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=pathlib.Path, help="Raiz local/remota do projeto Nemeton")
@@ -304,16 +335,21 @@ def main() -> None:
     officer = find_or_create_role(token, guild_id, "⚔️ Vice-Líder", 0xE87A5D, hoist=True)
     member = find_or_create_role(token, guild_id, "🛡️ Membro de Clã", 0x4D91C6)
 
-    public_read = [overwrite(guild_id, VIEW_CHANNEL | READ_MESSAGE_HISTORY), bot_access(bot["id"])]
-    public_read_only = [overwrite(guild_id, VIEW_CHANNEL | READ_MESSAGE_HISTORY, SEND_MESSAGES), bot_access(bot["id"])]
+    public_read = [overwrite(guild_id, VIEW_CHANNEL | READ_MESSAGE_HISTORY, THREAD_PERMISSIONS), bot_access(bot["id"])]
+    public_read_only = [overwrite(guild_id, VIEW_CHANNEL | READ_MESSAGE_HISTORY, SEND_MESSAGES | THREAD_PERMISSIONS), bot_access(bot["id"])]
     approved_only = [
-        overwrite(guild_id, deny=VIEW_CHANNEL),
-        overwrite(approved["id"], VIEW_CHANNEL | SEND_MESSAGES | READ_MESSAGE_HISTORY | USE_APPLICATION_COMMANDS),
+        overwrite(guild_id, deny=VIEW_CHANNEL | THREAD_PERMISSIONS),
+        overwrite(approved["id"], VIEW_CHANNEL | SEND_MESSAGES | READ_MESSAGE_HISTORY | ADD_REACTIONS | USE_APPLICATION_COMMANDS),
         bot_access(bot["id"]),
     ]
-    clans_private = [overwrite(guild_id, deny=VIEW_CHANNEL), bot_access(bot["id"])]
+    approved_read_only = [
+        overwrite(guild_id, deny=VIEW_CHANNEL | SEND_MESSAGES | THREAD_PERMISSIONS),
+        overwrite(approved["id"], VIEW_CHANNEL | READ_MESSAGE_HISTORY | USE_APPLICATION_COMMANDS, SEND_MESSAGES | THREAD_PERMISSIONS),
+        bot_access(bot["id"]),
+    ]
+    clans_private = [overwrite(guild_id, deny=VIEW_CHANNEL | THREAD_PERMISSIONS), bot_access(bot["id"])]
     council_only = [
-        overwrite(guild_id, deny=VIEW_CHANNEL),
+        overwrite(guild_id, deny=VIEW_CHANNEL | THREAD_PERMISSIONS),
         overwrite(leader["id"], VIEW_CHANNEL | SEND_MESSAGES | READ_MESSAGE_HISTORY),
         overwrite(officer["id"], VIEW_CHANNEL | SEND_MESSAGES | READ_MESSAGE_HISTORY),
         bot_access(bot["id"]),
@@ -340,8 +376,10 @@ def main() -> None:
                                          "Conversa integrada em tempo real com o Minecraft.", 3)
     recruitment = find_or_create_channel(token, guild_id, "🛡️・recrutamento-de-clãs", 0, ("recrutamento",) if administrator else (), general["id"], approved_only,
                                           "Apresente seu clã, procure companheiros e aceite o risco da guerra.", 4)
-    commands = find_or_create_channel(token, guild_id, "🤖・central-de-comandos", 0, ("comandos",) if administrator else (), general["id"], approved_only,
+    commands = find_or_create_channel(token, guild_id, "🤖・central-de-comandos", 0, ("comandos",) if administrator else (), general["id"], approved_read_only,
                                       "Guias dos comandos Minecraft e atalhos slash do Discord.", 5)
+    suggestions = find_or_create_channel(token, guild_id, "💡・sugestões-e-votação", 0, ("sugestões", "sugestoes"), general["id"], approved_only,
+                                         "Envie uma ideia por mensagem. O bot adiciona ✅ e ❌ para a comunidade votar.", 6)
     council = find_or_create_channel(token, guild_id, "👑・conselho-dos-líderes", 0, (), clans["id"], council_only,
                                      "Diplomacia, alianças, agendas e acordos entre líderes e vice-líderes.", 0)
     voice_lobby = find_or_create_channel(token, guild_id, "🌳 Lobby do Nemeton", 2, ("Lobby de Proximidade",), voice["id"], voice_only, position=0)
@@ -396,6 +434,12 @@ def main() -> None:
         "📢 O sino da clareira",
         "Este canal anuncia eventos de **Ender Dragon**, **Wither**, expedições, manutenções, raids e invasões de território sem encher o chat de spam.",
         0x4FAFC1)])
+    post_once(token, suggestions["id"], "suggestions", [embed(
+        "💡 A clareira escuta",
+        "Envie **uma sugestão por mensagem** e explique o que ela melhora no servidor. O bot colocará ✅ e ❌ para a comunidade votar.",
+        0x83A95C,
+        [("✅ Ideia aprovada", "Sugestões escolhidas podem render ao autor uma lembrança cosmética, item comemorativo ou crédito no projeto — nunca vantagem injusta.", False),
+         ("🧪 Antes de implementar", "A votação orienta a decisão, mas compatibilidade Java/Bedrock, desempenho e segurança continuam obrigatórios.", False)])])
 
     result = {
         "guild_id": guild_id,
@@ -417,6 +461,7 @@ def main() -> None:
         "global_chat_channel_id": global_chat["id"],
         "recruitment_channel_id": recruitment["id"],
         "commands_channel_id": commands["id"],
+        "suggestions_channel_id": suggestions["id"],
         "leaders_channel_id": council["id"],
         "voice_lobby_id": voice_lobby["id"],
         "invite_url": invite_url,
@@ -425,6 +470,7 @@ def main() -> None:
     if administrator:
         cleanup_legacy(token, guild_id, keep, general["id"], approved_only)
     cleanup_defaults(token, guild_id, keep)
+    harden_channel_permissions(token, guild_id, clans["id"])
     if root:
         apply_server_config(root, result, invite_url)
     json.dump(result, sys.stdout, ensure_ascii=False, indent=2)
