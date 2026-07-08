@@ -341,12 +341,19 @@ public final class LobbyService implements Listener, CommandExecutor {
         final int targetY;
         final int targetZ;
         final boolean correction = args.length >= 5 && args[4].equalsIgnoreCase("corrigir");
+        final boolean moving = args.length >= 5 && args[4].equalsIgnoreCase("mover");
+        final int previousBaseY;
         try {
             targetX = Integer.parseInt(args[1]);
             targetY = Integer.parseInt(args[2]);
             targetZ = Integer.parseInt(args[3]);
+            previousBaseY = moving && args.length >= 6 ? Integer.parseInt(args[5]) : targetY;
         } catch (NumberFormatException exception) {
             sender.sendMessage("§cAs coordenadas precisam ser números inteiros.");
+            return;
+        }
+        if (moving && args.length < 6) {
+            sender.sendMessage("§eUse /nemetonadmin copiararvore <x> <novo-y> <z> mover <y-atual>");
             return;
         }
         if (targetY - TREE_COPY_BELOW <= world.getMinHeight()
@@ -364,7 +371,8 @@ public final class LobbyService implements Listener, CommandExecutor {
         int scanSize = layerSize * height;
         List<TreeBlock> blocks = new ArrayList<>();
         building = true;
-        sender.sendMessage("§6" + (correction ? "Corrigindo" : "Copiando") + " somente a árvore do Nemeton em §f"
+        String operation = moving ? "Movendo" : correction ? "Corrigindo" : "Copiando";
+        sender.sendMessage("§6" + operation + " somente a árvore do Nemeton em §f"
                 + targetX + " " + targetY + " " + targetZ
                 + "§6. O bloco mais baixo da árvore ficará exatamente no Y informado.");
 
@@ -396,7 +404,7 @@ public final class LobbyService implements Listener, CommandExecutor {
                     if (scanIndex < scanSize) return;
                     scanFinished = true;
                     minimumDy = blocks.stream().mapToInt(TreeBlock::dy).min().orElse(0);
-                    cleanup = correction ? blocks.iterator() : Collections.emptyIterator();
+                    cleanup = correction || moving ? blocks.iterator() : Collections.emptyIterator();
                     sender.sendMessage("§7Árvore isolada: " + blocks.size() + " blocos. Referência vertical corrigida em "
                             + (-minimumDy) + " blocos; iniciando montagem em lotes seguros.");
                 }
@@ -404,8 +412,11 @@ public final class LobbyService implements Listener, CommandExecutor {
                 int cleaned = 0;
                 while (cleanup.hasNext() && cleaned++ < CHANGES_PER_TICK) {
                     TreeBlock treeBlock = cleanup.next();
+                    int oldY = moving
+                            ? previousBaseY + treeBlock.dy() - minimumDy
+                            : targetY + treeBlock.dy();
                     Block oldTarget = world.getBlockAt(
-                            targetX + treeBlock.dx(), targetY + treeBlock.dy(), targetZ + treeBlock.dz());
+                            targetX + treeBlock.dx(), oldY, targetZ + treeBlock.dz());
                     if (oldTarget.getType() != treeBlock.data().getMaterial()) continue;
                     oldTarget.setType(Material.AIR, false);
                     removed++;
