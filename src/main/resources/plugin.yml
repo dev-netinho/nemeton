@@ -28,7 +28,7 @@ commands:
     description: Recebe novamente o guia do Nemeton.
     usage: /guia
   kit:
-    description: Recebe uma vez o kit inicial da alpha ou o kit lascado de cobre.
+    description: Recebe uma vez o kit inicial ou o kit lascado de cobre a cada 10 minutos.
     usage: /kit [lascado]
   lapide:
     description: Mostra a última lápide e aponta a bússola.

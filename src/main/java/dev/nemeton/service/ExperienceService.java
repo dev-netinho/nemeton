@@ -12,9 +12,12 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.time.Duration;
 import java.util.List;
 
 public final class ExperienceService {
+    private static final Duration LASCADO_COOLDOWN = Duration.ofMinutes(10);
+
     private final JavaPlugin plugin;
     private final Settings settings;
     private final NamespacedKey starterKitKey;
@@ -62,6 +65,9 @@ public final class ExperienceService {
 
                         /kit
                         Pega ferramentas simples uma unica vez.
+
+                        /kit lascado
+                        Kit de cobre de emergencia a cada 10 minutos.
 
                         /guia
                         Recebe este livro de novo.
@@ -130,11 +136,21 @@ public final class ExperienceService {
     }
 
     public void claimLascadoKit(Player player) {
-        if (player.getPersistentDataContainer().has(lascadoKitKey, PersistentDataType.BYTE)) {
-            player.sendMessage("§eVocê já pegou o kit lascado.");
-            return;
+        long now = System.currentTimeMillis();
+        Long lastClaimed = player.getPersistentDataContainer().get(lascadoKitKey, PersistentDataType.LONG);
+        if (lastClaimed != null) {
+            long availableAt = lastClaimed + LASCADO_COOLDOWN.toMillis();
+            if (now < availableAt) {
+                player.sendMessage("§eO kit lascado fica disponível novamente em §f" + remaining(availableAt - now) + "§e.");
+                return;
+            }
         }
-        player.getPersistentDataContainer().set(lascadoKitKey, PersistentDataType.BYTE, (byte) 1);
+        player.getPersistentDataContainer().set(lascadoKitKey, PersistentDataType.LONG, now);
+        giveLascadoKit(player);
+        player.sendMessage("§aKit lascado entregue. Você pode pegar outro em 10 minutos.");
+    }
+
+    private void giveLascadoKit(Player player) {
         addOrDrop(player, named(Material.COMPASS, "§eBússola do Nemeton", "§7Aponte para o farol do mundo."));
         addOrDrop(player, named(Material.COPPER_SWORD, "§6Espada Lascada de Cobre", "§7Pra quem começa torto, mas começa equipado."));
         addOrDrop(player, named(Material.COPPER_PICKAXE, "§6Picareta Lascada de Cobre", "§7Mesma coragem do kit inicial, só que mais brilhosa."));
@@ -143,7 +159,15 @@ public final class ExperienceService {
         addOrDrop(player, new ItemStack(Material.TORCH, 24));
         addOrDrop(player, new ItemStack(Material.OAK_SAPLING, 4));
         addOrDrop(player, named(Material.COPPER_BOOTS, "§6Botas Lascadas de Cobre", "§7Pra sair do Nemeton fazendo barulho."));
-        player.sendMessage("§aKit lascado entregue. Agora vai, cobre boy.");
+    }
+
+    private String remaining(long millis) {
+        long seconds = Math.max(1, (millis + 999) / 1000);
+        long minutes = seconds / 60;
+        long leftoverSeconds = seconds % 60;
+        if (minutes <= 0) return leftoverSeconds + "s";
+        if (leftoverSeconds == 0) return minutes + "min";
+        return minutes + "min " + leftoverSeconds + "s";
     }
 
     private void claimStarterKit(Player player, boolean quiet) {
