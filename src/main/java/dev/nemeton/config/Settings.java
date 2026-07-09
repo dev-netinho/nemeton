@@ -62,6 +62,7 @@ public final class Settings {
                 env(config.getString("discord.leaders-channel-id", "")),
                 env(config.getString("discord.recruitment-channel-id", "")),
                 env(config.getString("discord.suggestions-channel-id", "")),
+                env(config.getString("discord.dm-log-channel-id", "")),
                 env(config.getString("discord.bot-user-id", "")),
                 Duration.ofMinutes(config.getLong("discord.intrusion-cooldown-minutes", 10)));
         return new Settings(database, hub, claims, war, discord);
@@ -96,6 +97,6 @@ public final class Settings {
                           String alertsChannelId, String approvedRoleId,
                           String clanLeaderRoleId, String clanOfficerRoleId, String clanMemberRoleId,
                           String leadersChannelId, String recruitmentChannelId, String suggestionsChannelId,
-                          String botUserId,
+                          String dmLogChannelId, String botUserId,
                           Duration intrusionCooldown) {}
 }

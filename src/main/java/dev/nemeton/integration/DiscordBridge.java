@@ -12,8 +12,13 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.http.*;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -36,6 +41,12 @@ public final class DiscordBridge {
     private final Map<UUID, String> appliedClanIdentity = new ConcurrentHashMap<>();
     private final AtomicBoolean polling = new AtomicBoolean();
     private final AtomicBoolean suggestionsPolling = new AtomicBoolean();
+    private final AtomicBoolean gatewayRunning = new AtomicBoolean();
+    private final AtomicBoolean gatewayAnnounced = new AtomicBoolean();
+    private volatile WebSocket gatewaySocket;
+    private volatile ScheduledExecutorService gatewayExecutor;
+    private volatile ScheduledFuture<?> heartbeatTask;
+    private volatile Long gatewaySequence;
     private volatile String lastSuggestionMessageId;
 
     public DiscordBridge(Settings.Discord config) { this.config = config; }
@@ -102,6 +113,45 @@ public final class DiscordBridge {
     }
     public void alert(String message) { if (enabled() && !config.alertsChannelId().isBlank()) postMessage(config.alertsChannelId(), message); }
     public void clanMessage(Clan clan, String message) { if (enabled() && clan.discordTextId() != null) postMessage(clan.discordTextId(), message); }
+
+    public void startDirectMessageForwarder(Plugin plugin) {
+        if (!enabled() || config.dmLogChannelId().isBlank() || !gatewayRunning.compareAndSet(false, true)) return;
+        gatewayExecutor = Executors.newSingleThreadScheduledExecutor(task -> {
+            Thread thread = new Thread(task, "Nemeton-Discord-DM-Gateway");
+            thread.setDaemon(true);
+            return thread;
+        });
+        connectGateway(plugin);
+    }
+
+    public void stopDirectMessageForwarder() {
+        gatewayRunning.set(false);
+        ScheduledFuture<?> heartbeat = heartbeatTask;
+        if (heartbeat != null) heartbeat.cancel(true);
+        WebSocket socket = gatewaySocket;
+        if (socket != null) socket.sendClose(WebSocket.NORMAL_CLOSURE, "Nemeton desligando");
+        ScheduledExecutorService executor = gatewayExecutor;
+        if (executor != null) executor.shutdownNow();
+    }
+
+    private void connectGateway(Plugin plugin) {
+        if (!gatewayRunning.get()) return;
+        client.newWebSocketBuilder()
+                .connectTimeout(Duration.ofSeconds(15))
+                .buildAsync(URI.create("wss://gateway.discord.gg/?v=10&encoding=json"), new DmGatewayListener(plugin))
+                .thenAccept(socket -> gatewaySocket = socket)
+                .exceptionally(error -> {
+                    plugin.getLogger().warning("Gateway de DMs do Discord indisponível; nova tentativa em alguns segundos.");
+                    scheduleGatewayReconnect(plugin, 10);
+                    return null;
+                });
+    }
+
+    private void scheduleGatewayReconnect(Plugin plugin, long delaySeconds) {
+        ScheduledExecutorService executor = gatewayExecutor;
+        if (!gatewayRunning.get() || executor == null || executor.isShutdown()) return;
+        executor.schedule(() -> connectGateway(plugin), delaySeconds, TimeUnit.SECONDS);
+    }
     public void pollClanChannels(Collection<Clan> clans, Consumer<ClanChatMessage> consumer) {
         if (!enabled() || !polling.compareAndSet(false, true)) return;
         List<CompletableFuture<Void>> requests = clans.stream().filter(c -> c.discordTextId() != null).map(clan -> {
@@ -145,6 +195,55 @@ public final class DiscordBridge {
     }
 
     private void postMessage(String channel, String message) { post("/channels/" + channel + "/messages", Map.of("content", message.substring(0, Math.min(1900, message.length())))); }
+    private void postDirectMessageLog(JsonNode message) {
+        if (!enabled() || config.dmLogChannelId().isBlank()) return;
+        JsonNode author = message.path("author");
+        String username = author.path("username").asText("desconhecido");
+        String globalName = author.path("global_name").asText("");
+        String authorId = author.path("id").asText("sem-id");
+        String display = globalName.isBlank() || globalName.equals("null") ? username : globalName + " (@" + username + ")";
+        String content = sanitizeDiscordText(message.path("content").asText(""));
+        String attachments = describeAttachments(message.path("attachments"));
+        String description = content.isBlank() ? "_DM sem texto._" : content;
+        if (!attachments.isBlank()) description += "\n\n**Anexos**\n" + attachments;
+        Map<String, Object> embed = new LinkedHashMap<>();
+        embed.put("title", "📥 DM recebida pelo bot");
+        embed.put("description", truncate(description, 3900));
+        embed.put("color", 0x8F7BD8);
+        embed.put("timestamp", message.path("timestamp").asText(Instant.now().toString()));
+        embed.put("fields", List.of(
+                Map.of("name", "Autor", "value", truncate(sanitizeDiscordText(display), 256), "inline", true),
+                Map.of("name", "Discord ID", "value", "`" + authorId + "`", "inline", true),
+                Map.of("name", "Canal DM", "value", "`" + message.path("channel_id").asText("sem-canal") + "`", "inline", true)
+        ));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("allowed_mentions", Map.of("parse", List.of()));
+        body.put("embeds", List.of(embed));
+        post("/channels/" + config.dmLogChannelId() + "/messages", body).exceptionally(error -> null);
+    }
+
+    private String describeAttachments(JsonNode attachments) {
+        if (!attachments.isArray() || attachments.isEmpty()) return "";
+        List<String> lines = new ArrayList<>();
+        for (JsonNode attachment : attachments) {
+            String name = sanitizeDiscordText(attachment.path("filename").asText("arquivo"));
+            String url = attachment.path("url").asText("");
+            lines.add("• " + name + (url.isBlank() ? "" : " — " + url));
+        }
+        return truncate(String.join("\n", lines), 900);
+    }
+
+    private String sanitizeDiscordText(String text) {
+        return text.replace("@everyone", "@\u200beveryone")
+                .replace("@here", "@\u200bhere")
+                .replace("```", "`\u200b``");
+    }
+
+    private String truncate(String value, int max) {
+        if (value.length() <= max) return value;
+        return value.substring(0, Math.max(0, max - 1)) + "…";
+    }
+
     private CompletableFuture<JsonNode> post(String path, Object body) { return request("POST", path, body); }
     private CompletableFuture<Void> setRole(String discordId, String roleId, boolean add) {
         if (roleId == null || roleId.isBlank()) return CompletableFuture.completedFuture(null);
@@ -180,7 +279,10 @@ public final class DiscordBridge {
     private CompletableFuture<JsonNode> request(String method, String path, Object body) {
         try {
             HttpRequest.BodyPublisher publisher = body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body));
-            HttpRequest request = HttpRequest.newBuilder(URI.create(API + path)).header("Authorization", "Bot " + config.botToken()).header("Content-Type", "application/json")
+            HttpRequest request = HttpRequest.newBuilder(URI.create(API + path))
+                    .header("Authorization", "Bot " + config.botToken())
+                    .header("Content-Type", "application/json")
+                    .header("User-Agent", "NemetonCore/0.1")
                     .timeout(Duration.ofSeconds(15)).method(method, publisher).build();
             return client.sendAsync(request, HttpResponse.BodyHandlers.ofString()).thenApply(response -> {
                 if (response.statusCode() < 200 || response.statusCode() >= 300) throw new IllegalStateException("Discord respondeu " + response.statusCode() + ": " + response.body());
@@ -209,4 +311,114 @@ public final class DiscordBridge {
     }
     public record DiscordResources(String roleId, String textId, String voiceId) {}
     public record ClanChatMessage(Clan clan, UUID playerId, String displayName, String content) {}
+
+    private final class DmGatewayListener implements WebSocket.Listener {
+        private final Plugin plugin;
+        private final StringBuilder buffer = new StringBuilder();
+
+        private DmGatewayListener(Plugin plugin) { this.plugin = plugin; }
+
+        @Override
+        public void onOpen(WebSocket webSocket) {
+            WebSocket.Listener.super.onOpen(webSocket);
+            webSocket.request(1);
+        }
+
+        @Override
+        public CompletableFuture<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
+            buffer.append(data);
+            if (!last) {
+                webSocket.request(1);
+                return CompletableFuture.completedFuture(null);
+            }
+            String payload = buffer.toString();
+            buffer.setLength(0);
+            handleGatewayPayload(webSocket, payload);
+            webSocket.request(1);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletableFuture<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+            stopHeartbeat();
+            if (gatewayRunning.get()) scheduleGatewayReconnect(plugin, 8);
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public void onError(WebSocket webSocket, Throwable error) {
+            stopHeartbeat();
+            if (gatewayRunning.get()) scheduleGatewayReconnect(plugin, 10);
+        }
+
+        private void handleGatewayPayload(WebSocket webSocket, String payload) {
+            try {
+                JsonNode root = json.readTree(payload);
+                if (!root.path("s").isNull()) gatewaySequence = root.path("s").asLong();
+                int op = root.path("op").asInt(-1);
+                if (op == 10) {
+                    long interval = root.path("d").path("heartbeat_interval").asLong(45000);
+                    startHeartbeat(webSocket, interval);
+                    identify(webSocket);
+                    if (gatewayAnnounced.compareAndSet(false, true)) {
+                        plugin.getLogger().info("Gateway de DMs do Discord conectado ao canal privado.");
+                    }
+                    return;
+                }
+                if (op == 0 && "MESSAGE_CREATE".equals(root.path("t").asText())) {
+                    JsonNode message = root.path("d");
+                    boolean guildMessage = message.hasNonNull("guild_id");
+                    boolean fromBot = message.path("author").path("bot").asBoolean(false);
+                    if (!guildMessage && !fromBot) postDirectMessageLog(message);
+                    return;
+                }
+                if (op == 7 || op == 9) {
+                    webSocket.abort();
+                    scheduleGatewayReconnect(plugin, 5);
+                }
+            } catch (Exception exception) {
+                plugin.getLogger().warning("DM do Discord recebida, mas não pôde ser processada.");
+            }
+        }
+
+        private void startHeartbeat(WebSocket webSocket, long intervalMillis) {
+            stopHeartbeat();
+            ScheduledExecutorService executor = gatewayExecutor;
+            if (executor == null || executor.isShutdown()) return;
+            heartbeatTask = executor.scheduleAtFixedRate(() -> sendHeartbeat(webSocket), intervalMillis, intervalMillis, TimeUnit.MILLISECONDS);
+            sendHeartbeat(webSocket);
+        }
+
+        private void stopHeartbeat() {
+            ScheduledFuture<?> heartbeat = heartbeatTask;
+            if (heartbeat != null) heartbeat.cancel(true);
+        }
+
+        private void sendHeartbeat(WebSocket webSocket) {
+            try {
+                var payload = json.createObjectNode();
+                payload.put("op", 1);
+                if (gatewaySequence == null) payload.putNull("d");
+                else payload.put("d", gatewaySequence);
+                webSocket.sendText(json.writeValueAsString(payload), true);
+            } catch (Exception ignored) {
+            }
+        }
+
+        private void identify(WebSocket webSocket) {
+            try {
+                var root = json.createObjectNode();
+                root.put("op", 2);
+                var data = root.putObject("d");
+                data.put("token", config.botToken());
+                data.put("intents", 1 << 12);
+                var properties = data.putObject("properties");
+                properties.put("os", "linux");
+                properties.put("browser", "nemeton");
+                properties.put("device", "nemeton");
+                webSocket.sendText(json.writeValueAsString(root), true);
+            } catch (Exception ignored) {
+            }
+        }
+    }
 }

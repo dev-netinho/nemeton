@@ -55,6 +55,7 @@ discord:
   leaders-channel-id: ''
   recruitment-channel-id: ''
   suggestions-channel-id: ''
+  dm-log-channel-id: ''
   bot-user-id: ''
   intrusion-cooldown-minutes: 10
 

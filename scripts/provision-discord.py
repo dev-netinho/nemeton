@@ -181,6 +181,7 @@ def apply_server_config(root: pathlib.Path, result: dict, invite_url: str) -> No
         "leaders-channel-id": repr(result["leaders_channel_id"]),
         "recruitment-channel-id": repr(result["recruitment_channel_id"]),
         "suggestions-channel-id": repr(result["suggestions_channel_id"]),
+        "dm-log-channel-id": repr(result["dm_log_channel_id"]),
         "bot-user-id": repr(result["bot_user_id"]),
     }
     for key, value in values.items():
@@ -354,6 +355,11 @@ def main() -> None:
         overwrite(officer["id"], VIEW_CHANNEL | SEND_MESSAGES | READ_MESSAGE_HISTORY),
         bot_access(bot["id"]),
     ]
+    admin_only = [
+        overwrite(guild_id, deny=VIEW_CHANNEL | THREAD_PERMISSIONS),
+        overwrite(guild_info["owner_id"], VIEW_CHANNEL | SEND_MESSAGES | READ_MESSAGE_HISTORY | ADD_REACTIONS | USE_APPLICATION_COMMANDS, target_type=1),
+        bot_access(bot["id"]),
+    ]
     voice_only = [
         overwrite(guild_id, deny=VIEW_CHANNEL | CONNECT),
         overwrite(approved["id"], VIEW_CHANNEL | CONNECT | SPEAK),
@@ -365,6 +371,7 @@ def main() -> None:
     # Administrator we create clean replacements instead of touching them.
     clans = find_or_create_channel(token, guild_id, "⚔️ CLÃS • POLÍTICA E GUERRA", 4, ("CLÃS",) if administrator else (), permissions=clans_private, position=1)
     voice = find_or_create_channel(token, guild_id, "🔊 VOZ • PROXIMIDADE", 4, ("VOZ POR PROXIMIDADE",) if administrator else (), permissions=voice_only, position=2)
+    admin = find_or_create_channel(token, guild_id, "🔐 ADMINISTRAÇÃO", 4, ("ADMINISTRAÇÃO", "ADMINISTRACAO"), permissions=admin_only, position=3)
 
     welcome = find_or_create_channel(token, guild_id, "🌿・boas-vindas", 0, ("boas-vindas",), general["id"], public_read_only,
                                      "Seu primeiro passo: aprovação, vínculo e entrada no Nemeton.", 0)
@@ -383,6 +390,8 @@ def main() -> None:
     council = find_or_create_channel(token, guild_id, "👑・conselho-dos-líderes", 0, (), clans["id"], council_only,
                                      "Diplomacia, alianças, agendas e acordos entre líderes e vice-líderes.", 0)
     voice_lobby = find_or_create_channel(token, guild_id, "🌳 Lobby do Nemeton", 2, ("Lobby de Proximidade",), voice["id"], voice_only, position=0)
+    dm_log = find_or_create_channel(token, guild_id, "🔐・dm-do-bot", 0, ("dm-do-bot", "dm-bot"), admin["id"], admin_only,
+                                    "Log privado das mensagens diretas enviadas ao bot. Contém códigos de vínculo e dados pessoais; não compartilhe prints.", 0)
 
     try:
         request(token, "PUT", f"/guilds/{guild_id}/members/{guild_info['owner_id']}/roles/{approved['id']}")
@@ -440,6 +449,12 @@ def main() -> None:
         0x83A95C,
         [("✅ Ideia aprovada", "Sugestões escolhidas podem render ao autor uma lembrança cosmética, item comemorativo ou crédito no projeto — nunca vantagem injusta.", False),
          ("🧪 Antes de implementar", "A votação orienta a decisão, mas compatibilidade Java/Bedrock, desempenho e segurança continuam obrigatórios.", False)])])
+    post_once(token, dm_log["id"], "dm_log", [embed(
+        "🔐 Caixa de entrada privada do bot",
+        "Toda DM enviada ao bot será espelhada aqui para auditoria e suporte. Este canal é restrito porque pode conter código de vínculo, dúvida pessoal ou dado sensível.",
+        0x8F7BD8,
+        [("Segurança", "`@everyone`, `@here` e menções vindas da DM são neutralizadas pelo plugin antes de postar.", False),
+         ("Uso correto", "Use este canal só para suporte e auditoria. Não publique prints de DMs fora da administração.", False)])])
 
     result = {
         "guild_id": guild_id,
@@ -455,6 +470,7 @@ def main() -> None:
         "general_category_id": general["id"],
         "clans_category_id": clans["id"],
         "voice_category_id": voice["id"],
+        "admin_category_id": admin["id"],
         "welcome_channel_id": welcome["id"],
         "rules_channel_id": rules["id"],
         "alerts_channel_id": alerts["id"],
@@ -462,6 +478,7 @@ def main() -> None:
         "recruitment_channel_id": recruitment["id"],
         "commands_channel_id": commands["id"],
         "suggestions_channel_id": suggestions["id"],
+        "dm_log_channel_id": dm_log["id"],
         "leaders_channel_id": council["id"],
         "voice_lobby_id": voice_lobby["id"],
         "invite_url": invite_url,

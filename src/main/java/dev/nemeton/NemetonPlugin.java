@@ -18,6 +18,7 @@ public final class NemetonPlugin extends JavaPlugin {
     private RaidService raidService;
     private TradeService tradeService;
     private BackpackService backpackService;
+    private DiscordBridge discordBridge;
 
     @Override public void onEnable() {
         saveDefaultConfig(); Settings settings = Settings.load(getConfig());
@@ -26,7 +27,7 @@ public final class NemetonPlugin extends JavaPlugin {
                 throw new IllegalStateException("Defina DB_PASSWORD antes de iniciar; a senha padrão é recusada.");
             }
             database = new Database(settings.database()); database.migrate(); NemetonRepository repository = new NemetonRepository(database); ServerState state = repository.load();
-            RegionGateway regions = new RegionGateway(settings); DiscordBridge discord = new DiscordBridge(settings.discord());
+            RegionGateway regions = new RegionGateway(settings); DiscordBridge discord = new DiscordBridge(settings.discord()); this.discordBridge = discord;
             regions.ensureNemeton(); for (Clan clan : state.clans()) clan.claims().forEach(chunk -> {
                 java.util.Set<java.util.UUID> access = new java.util.HashSet<>(clan.members().keySet()); access.addAll(state.clanTrustedPlayers(clan.id())); regions.createClanClaim(chunk, access);
             });
@@ -64,11 +65,12 @@ public final class NemetonPlugin extends JavaPlugin {
             Bukkit.getScheduler().runTaskTimerAsynchronously(this, discordCommands::registerWhenReady, 200L, 200L);
             Bukkit.getScheduler().runTaskTimerAsynchronously(this, clans::syncDiscordRoles, 1200L, 1200L);
             Bukkit.getScheduler().runTask(this, raids::recoverOrphans);
+            discord.startDirectMessageForwarder(this);
             getLogger().info("NemetonCore ativo: " + state.clans().size() + " clãs carregados.");
         } catch (Exception exception) {
             getLogger().severe("Não foi possível iniciar o NemetonCore: " + exception.getMessage()); exception.printStackTrace(); Bukkit.getPluginManager().disablePlugin(this);
         }
     }
     private void registerCommand(String name, TabExecutor executor) { PluginCommand command = getCommand(name); if (command == null) throw new IllegalStateException("Comando ausente: " + name); command.setExecutor(executor); command.setTabCompleter(executor); }
-    @Override public void onDisable() { if (backpackService != null) backpackService.shutdown(); if (tradeService != null) tradeService.shutdown(); if (raidService != null) raidService.shutdown(); if (database != null) database.close(); }
+    @Override public void onDisable() { if (discordBridge != null) discordBridge.stopDirectMessageForwarder(); if (backpackService != null) backpackService.shutdown(); if (tradeService != null) tradeService.shutdown(); if (raidService != null) raidService.shutdown(); if (database != null) database.close(); }
 }
