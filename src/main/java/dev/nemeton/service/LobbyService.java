@@ -54,12 +54,14 @@ import java.util.*;
 
 /** Owns the visible and interactive experience of the Nemeton clearing. */
 public final class LobbyService implements Listener, CommandExecutor {
-    private static final int CHANGES_PER_TICK = 450;
+    private static final int CHANGES_PER_TICK = 650;
     private static final int MAX_VISUAL_RADIUS = 44;
     private static final int MIN_VISUAL_RADIUS = 30;
     private static final int TREE_COPY_RADIUS = 44;
     private static final int TREE_COPY_BELOW = 12;
     private static final int TREE_COPY_ABOVE = 78;
+    private static final int NEMETON_TREE_HEIGHT = 62;
+    private static final int NEMETON_TREE_BASE_RADIUS = 10;
     private static final String CITIZENS_ROLE = "nemeton-role";
 
     private record TreeBlock(int dx, int dy, int dz, BlockData data) { }
@@ -529,12 +531,12 @@ public final class LobbyService implements Listener, CommandExecutor {
         planCleanClearing(world, changes);
         planCoreTree(world, changes);
         planPaths(world, changes);
-        planBoundary(world, changes);
-        planGateways(world, changes);
         planNpcPavilions(world, changes);
         planLanternsAndGardens(world, changes);
+        planBoundary(world, changes);
+        planGateways(world, changes);
         planBeaconBase(world, changes);
-        sender.sendMessage("§6Reforma do Nemeton iniciada: " + changes.size() + " alterações em lotes seguros.");
+        sender.sendMessage("§6Reconstrução cinematográfica do Nemeton iniciada: " + changes.size() + " alterações em lotes seguros.");
 
         Iterator<Runnable> iterator = changes.iterator();
         new BukkitRunnable() {
@@ -547,7 +549,7 @@ public final class LobbyService implements Listener, CommandExecutor {
                 activateBeacon(world);
                 spawnLobbyEntities();
                 world.save();
-                sender.sendMessage("§aReforma concluída. Clareira limpa, beacon ativo, caminhos, limite seguro, portais e NPCs estão prontos.");
+                sender.sendMessage("§aReforma concluída. Árvore colossal, beacon ativo, clareira, estações, portais e NPCs estão prontos.");
             }
         }.runTaskTimer(plugin, 1L, 1L);
     }
@@ -657,31 +659,56 @@ public final class LobbyService implements Listener, CommandExecutor {
 
     private void planCleanClearing(World world, List<Runnable> changes) {
         int cx = blockCenterX(), cz = blockCenterZ();
-        int radius = visualRadius() + 3;
-        int maxY = Math.min(world.getMaxHeight() - 2, 150);
+        int radius = visualRadius() + 5;
+        int maxY = Math.min(world.getMaxHeight() - 2, lobbyBaseY(world) + NEMETON_TREE_HEIGHT + 32);
         for (int x = cx - radius; x <= cx + radius; x++) {
             for (int z = cz - radius; z <= cz + radius; z++) {
                 double distance = Math.hypot(x - cx, z - cz);
                 if (distance > radius) continue;
-                int base = terrainSurfaceY(world, x, z);
-                int fx = x, fz = z, fy = base;
-                if (distance <= radius - 2) {
+                int targetY = plannedSurfaceY(world, x, z);
+                int fx = x, fz = z, fy = targetY;
+                int fillBottom = Math.max(world.getMinHeight(), targetY - 18);
+                for (int y = fillBottom; y <= targetY; y++) {
+                    int cy = y;
                     changes.add(() -> {
-                        Block surface = world.getBlockAt(fx, fy, fz);
-                        if (canBecomeMeadow(surface.getType())) {
-                            surface.setType(Math.floorMod(fx * 17 + fz * 31, 9) == 0 ? Material.MOSS_BLOCK : Material.GRASS_BLOCK, false);
-                        }
+                        Material material = cy == fy ? sculptedSurfaceMaterial(fx, fz, distance)
+                                : cy >= fy - 3 ? (Math.floorMod(fx * 13 + fz * 7 + cy, 9) == 0 ? Material.ROOTED_DIRT : Material.DIRT)
+                                : Material.STONE;
+                        set(world, fx, cy, fz, material);
                     });
                 }
-                for (int y = base + 1; y <= maxY; y++) {
+                for (int y = targetY + 1; y <= maxY; y++) {
                     int cy = y;
                     changes.add(() -> {
                         Block block = world.getBlockAt(fx, cy, fz);
-                        if (shouldClearLobbyDecoration(block.getType())) block.setType(Material.AIR, false);
+                        if (shouldClearLobbySculpture(block.getType())) block.setType(Material.AIR, false);
                     });
                 }
+                if (distance <= visualRadius() + 2) clearPlants(world, changes, x, targetY + 1, z);
             }
         }
+    }
+
+    private Material sculptedSurfaceMaterial(int x, int z, double distance) {
+        int noise = Math.floorMod(x * 37 + z * 19, 17);
+        if (distance <= 9.5) {
+            if (noise == 0) return Material.ROOTED_DIRT;
+            return noise <= 4 ? Material.MOSS_BLOCK : Material.GRASS_BLOCK;
+        }
+        if (distance <= 18.5) {
+            if (noise <= 2) return Material.MOSS_BLOCK;
+            if (noise == 3) return Material.ROOTED_DIRT;
+            return Material.GRASS_BLOCK;
+        }
+        if (distance <= visualRadius() - 5) {
+            if (noise <= 2) return Material.MOSS_BLOCK;
+            if (noise == 3) return Material.PODZOL;
+            if (noise == 4) return Material.COARSE_DIRT;
+            return Material.GRASS_BLOCK;
+        }
+        if (noise <= 2) return Material.MOSS_BLOCK;
+        if (noise <= 4) return Material.PODZOL;
+        return Material.GRASS_BLOCK;
     }
 
     private boolean isWaterSurface(Material material) {
@@ -712,107 +739,155 @@ public final class LobbyService implements Listener, CommandExecutor {
 
     private void planCoreTree(World world, List<Runnable> changes) {
         int cx = blockCenterX(), cz = blockCenterZ();
-        int ground = terrainSurfaceY(world, cx, cz);
+        int ground = lobbyBaseY(world);
+        int height = NEMETON_TREE_HEIGHT;
 
-        clearColumn(world, changes, cx, cz, ground + 1, world.getMaxHeight() - 2);
+        for (int y = ground + 1; y <= ground + height; y++) {
+            int local = y - ground;
+            double t = local / (double) height;
+            double radius = NEMETON_TREE_BASE_RADIUS - t * 5.2
+                    + Math.sin(local * 0.33) * 0.55
+                    + (local < 14 ? 1.1 : 0.0);
+            int limit = (int) Math.ceil(radius + 1.6);
+            for (int dx = -limit; dx <= limit; dx++) {
+                for (int dz = -limit; dz <= limit; dz++) {
+                    double twist = Math.sin(local * 0.18) * 0.8;
+                    double distance = Math.hypot(dx + twist * 0.35, dz - twist * 0.25);
+                    double noise = (Math.floorMod((cx + dx) * 31 + (cz + dz) * 17 + y * 7, 13) - 6) * 0.12;
+                    if (distance > radius + noise) continue;
 
-        clearColumn(world, changes, cx, cz, ground + 2, world.getMaxHeight() - 2);
+                    boolean centralBeam = Math.abs(dx) <= 1 && Math.abs(dz) <= 1;
+                    boolean hollowChamber = local <= 16 && distance < 3.5;
+                    boolean doorway = local <= 8 && distance < radius - 0.8
+                            && ((Math.abs(dx) <= 2 && Math.abs(dz) >= 4)
+                            || (Math.abs(dz) <= 2 && Math.abs(dx) >= 4));
+                    if (centralBeam || hollowChamber || doorway) continue;
 
-        for (int dx = -8; dx <= 8; dx++) {
-            for (int dz = -8; dz <= 8; dz++) {
-                double distance = Math.hypot(dx, dz);
-                if (distance < 3.25 || distance > 7.85) continue;
-                if (Math.abs(dx) == 8 && Math.abs(dz) == 8) continue;
-                int x = cx + dx, z = cz + dz;
-                int localGround = terrainSurfaceY(world, x, z);
-                int top = ground + 46 + Math.floorMod(dx * 7 + dz * 11, 7);
-                for (int y = localGround + 1; y <= top; y++) {
-                    int fy = y;
-                    Material material = Math.floorMod(dx + dz + y, 7) == 0 ? Material.STRIPPED_DARK_OAK_LOG
-                            : distance > 6.9 && Math.floorMod(y + dx, 5) == 0 ? Material.SPRUCE_LOG : Material.DARK_OAK_LOG;
-                    changes.add(log(world, x, fy, z, material, Axis.Y));
+                    Material material = Math.floorMod(dx * 3 + dz * 5 + y, 9) == 0 ? Material.STRIPPED_DARK_OAK_LOG
+                            : Math.floorMod(dx + dz + y, 7) == 0 ? Material.SPRUCE_LOG
+                            : Material.DARK_OAK_LOG;
+                    changes.add(log(world, cx + dx, y, cz + dz, material, Axis.Y));
                 }
             }
         }
 
-        int[][] directions = {
-                {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}
+        for (int degree = 0; degree < 360; degree += 18) {
+            double angle = Math.toRadians(degree);
+            int length = degree % 90 == 0 ? 39 : degree % 45 == 0 ? 34 : 27;
+            int width = degree % 45 == 0 ? 3 : 2;
+            planGroundRoot(world, changes, cx, cz, ground, angle, length, width);
+        }
+
+        for (int degree = 0; degree < 360; degree += 30) {
+            double angle = Math.toRadians(degree + 8);
+            int startY = ground + 19 + Math.floorMod(degree, 17);
+            int length = degree % 60 == 0 ? 34 : 26;
+            int lift = degree % 90 == 0 ? 13 : 9;
+            planBranch(world, changes, cx, cz, startY, angle, length, lift, degree % 60 == 0 ? 7 : 5);
+        }
+        for (int degree = 15; degree < 360; degree += 45) {
+            double angle = Math.toRadians(degree);
+            planBranch(world, changes, cx, cz, ground + 38 + Math.floorMod(degree, 9), angle, 22, 10, 6);
+        }
+
+        Material[] leafPalette = {
+                Material.OAK_LEAVES, Material.DARK_OAK_LEAVES, Material.AZALEA_LEAVES, Material.FLOWERING_AZALEA_LEAVES
         };
-        for (int[] direction : directions) {
-            Axis axis = Math.abs(direction[0]) >= Math.abs(direction[1]) ? Axis.X : Axis.Z;
-            int length = direction[0] == 0 || direction[1] == 0 ? 33 : 26;
-            for (int step = 6; step <= length; step++) {
-                int x = cx + direction[0] * step;
-                int z = cz + direction[1] * step;
-                int y = terrainSurfaceY(world, x, z);
-                int fx = x, fy = y, fz = z;
-                Material groundMaterial = step % 3 == 0 ? Material.ROOTED_DIRT : Material.MOSS_BLOCK;
-                changes.add(() -> set(world, fx, fy, fz, groundMaterial));
-                if (step <= length - 2) changes.add(log(world, fx, fy + 1, fz, Material.DARK_OAK_LOG, axis));
-                if (step % 4 == 0 && step < length - 3) changes.add(log(world, fx, fy + 2, fz, Material.SPRUCE_LOG, axis));
-                if (step % 5 == 0) planLeafCluster(changes, world, fx, fy + 2, fz, 2);
-            }
-        }
-
-        for (int[] direction : directions) {
-            Axis axis = Math.abs(direction[0]) >= Math.abs(direction[1]) ? Axis.X : Axis.Z;
-            int startY = ground + 26 + Math.floorMod(direction[0] * 5 + direction[1] * 3, 7);
-            int length = direction[0] == 0 || direction[1] == 0 ? 32 : 24;
-            for (int step = 0; step <= length; step++) {
-                int x = cx + direction[0] * (7 + step);
-                int z = cz + direction[1] * (7 + step);
-                int y = startY + step / 3;
-                changes.add(log(world, x, y, z, Material.DARK_OAK_LOG, axis));
-                if (step % 3 == 0 && step > 1) changes.add(log(world, x, y - 1, z, Material.STRIPPED_DARK_OAK_LOG, axis));
-                if (step >= length - 5 || step % 6 == 0) planLeafCluster(changes, world, x, y, z, step >= length - 5 ? 5 : 3);
-                if (step == length / 2 || step == length - 6) {
-                    int crownTop = y + 9 + Math.floorMod(x + z, 4);
-                    for (int py = y + 1; py <= crownTop; py++) {
-                        int fy = py;
-                        changes.add(log(world, x, fy, z, Material.DARK_OAK_LOG, Axis.Y));
-                    }
-                    planLeafCluster(changes, world, x, crownTop, z, 5);
-                }
-            }
-        }
-
-        Material[] leafPalette = {Material.OAK_LEAVES, Material.DARK_OAK_LEAVES, Material.AZALEA_LEAVES, Material.FLOWERING_AZALEA_LEAVES};
-        for (int y = ground + 36; y <= ground + 72; y++) {
+        for (int y = ground + 30; y <= ground + height + 16; y++) {
             double vertical = Math.abs((ground + 54.0) - y);
-            double radius = 31.5 - vertical * 0.78;
-            for (int dx = (int) -Math.ceil(radius); dx <= Math.ceil(radius); dx++) {
-                for (int dz = (int) -Math.ceil(radius); dz <= Math.ceil(radius); dz++) {
-                    if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) continue;
-                    double noise = Math.floorMod((cx + dx) * 31 + (cz + dz) * 17 + y * 13, 11) * 0.14;
-                    if (Math.hypot(dx, dz) > radius + noise) continue;
-                    if (Math.floorMod(dx * 13 + dz * 19 + y * 7, 31) == 0) continue;
+            double radius = 37.0 - vertical * 0.82;
+            if (y < ground + 42) radius += 4.0;
+            if (y > ground + 66) radius -= (y - (ground + 66)) * 0.35;
+            if (radius < 4.5) continue;
+            int limit = (int) Math.ceil(radius);
+            for (int dx = -limit; dx <= limit; dx++) {
+                for (int dz = -limit; dz <= limit; dz++) {
+                    double stretched = Math.hypot(dx * 0.94, dz * 1.06);
+                    double noise = Math.floorMod((cx + dx) * 31 + (cz + dz) * 17 + y * 13, 17) * 0.16;
+                    if (stretched > radius + noise) continue;
+                    if (Math.abs(dx) <= 2 && Math.abs(dz) <= 2) continue;
+                    if (Math.floorMod(dx * 13 + dz * 19 + y * 7, 37) == 0) continue;
                     Material leaf = leafPalette[Math.floorMod(dx * 5 + dz * 3 + y, leafPalette.length)];
                     changes.add(leaves(world, cx + dx, y, cz + dz, leaf));
                 }
             }
         }
-        for (int degree = 0; degree < 360; degree += 24) {
-            double angle = Math.toRadians(degree);
-            int glowRadius = degree % 48 == 0 ? 17 : 25;
-            int x = cx + (int) Math.round(Math.cos(angle) * glowRadius);
-            int z = cz + (int) Math.round(Math.sin(angle) * glowRadius);
-            int y = ground + 38 + Math.floorMod(degree, 17);
-            Material light = degree % 72 == 0 ? Material.SEA_LANTERN : Material.SHROOMLIGHT;
+
+        for (int degree = 0; degree < 360; degree += 15) {
+            double angle = Math.toRadians(degree + 5);
+            int radius = degree % 45 == 0 ? 18 : 27;
+            int x = cx + (int) Math.round(Math.cos(angle) * radius);
+            int z = cz + (int) Math.round(Math.sin(angle) * radius);
+            int y = ground + 35 + Math.floorMod(degree, 19);
+            Material light = degree % 60 == 0 ? Material.SEA_LANTERN : Material.SHROOMLIGHT;
             changes.add(() -> set(world, x, y, z, light));
-            if (degree % 48 == 0) {
-                int hx = x, hy = y - 2, hz = z;
-                changes.add(() -> {
-                    Block block = world.getBlockAt(hx, hy, hz);
-                    if (block.getType().isAir()) block.setType(Material.HANGING_ROOTS, false);
-                });
+            int roots = 3 + Math.floorMod(degree, 6);
+            for (int drop = 1; drop <= roots; drop++) {
+                int hy = y - drop;
+                changes.add(placeIfAir(world, x, hy, z, drop == roots ? Material.GLOW_LICHEN : Material.HANGING_ROOTS));
             }
         }
+    }
+
+    private void planGroundRoot(World world, List<Runnable> changes, int cx, int cz, int ground,
+                                double angle, int length, int width) {
+        for (int step = 0; step <= length; step++) {
+            double curve = Math.sin(step * 0.24 + angle * 2.0) * 0.16;
+            double currentAngle = angle + curve;
+            int distance = NEMETON_TREE_BASE_RADIUS - 2 + step;
+            int x = cx + (int) Math.round(Math.cos(currentAngle) * distance);
+            int z = cz + (int) Math.round(Math.sin(currentAngle) * distance);
+            int thickness = Math.max(0, width - step / 13);
+            Axis axis = Math.abs(Math.cos(currentAngle)) >= Math.abs(Math.sin(currentAngle)) ? Axis.X : Axis.Z;
+            for (int lateral = -thickness; lateral <= thickness; lateral++) {
+                int px = x + (int) Math.round(-Math.sin(currentAngle) * lateral);
+                int pz = z + (int) Math.round(Math.cos(currentAngle) * lateral);
+                int py = plannedSurfaceY(world, px, pz);
+                int fx = px, fy = py, fz = pz;
+                changes.add(() -> set(world, fx, fy, fz,
+                        Math.floorMod(fx * 11 + fz * 5, 6) == 0 ? Material.ROOTED_DIRT : Material.MOSS_BLOCK));
+                if (step < length - 2 && Math.abs(lateral) <= Math.max(0, thickness - 1)) {
+                    changes.add(log(world, px, py + 1, pz,
+                            Math.floorMod(step + lateral, 5) == 0 ? Material.STRIPPED_DARK_OAK_LOG : Material.DARK_OAK_LOG,
+                            axis));
+                }
+                if (step < length / 2 && thickness >= 2 && lateral == 0 && step % 4 == 0) {
+                    changes.add(log(world, px, py + 2, pz, Material.SPRUCE_LOG, axis));
+                }
+            }
+        }
+    }
+
+    private void planBranch(World world, List<Runnable> changes, int cx, int cz, int startY,
+                            double angle, int length, int lift, int clusterRadius) {
+        Axis axis = Math.abs(Math.cos(angle)) >= Math.abs(Math.sin(angle)) ? Axis.X : Axis.Z;
+        int endX = cx, endY = startY, endZ = cz;
+        for (int step = 0; step <= length; step++) {
+            double sway = Math.sin(step * 0.31 + angle * 3.0) * 0.12;
+            double currentAngle = angle + sway;
+            double distance = 7.0 + step;
+            int x = cx + (int) Math.round(Math.cos(currentAngle) * distance);
+            int z = cz + (int) Math.round(Math.sin(currentAngle) * distance);
+            int y = startY + (int) Math.round(step * (lift / (double) Math.max(1, length)))
+                    + (int) Math.round(Math.sin(step * 0.43) * 1.2);
+            endX = x; endY = y; endZ = z;
+            changes.add(log(world, x, y, z,
+                    step % 5 == 0 ? Material.STRIPPED_DARK_OAK_LOG : Material.DARK_OAK_LOG, axis));
+            if (step < 10) {
+                changes.add(log(world, x, y - 1, z, Material.SPRUCE_LOG, axis));
+                if (step % 2 == 0) changes.add(log(world, x, y + 1, z, Material.DARK_OAK_LOG, axis));
+            }
+            if (step > 7 && step % 7 == 0) planLeafCluster(changes, world, x, y, z, 3);
+        }
+        planLeafCluster(changes, world, endX, endY, endZ, clusterRadius);
+        planLeafCluster(changes, world, endX - (int) Math.round(Math.sin(angle) * 4), endY - 1,
+                endZ + (int) Math.round(Math.cos(angle) * 4), Math.max(3, clusterRadius - 1));
     }
 
     private void planBeaconBase(World world, List<Runnable> changes) {
         int cx = blockCenterX(), cz = blockCenterZ();
         int beaconY = beaconY();
-        Material[] pyramid = {Material.IRON_BLOCK, Material.IRON_BLOCK, Material.GOLD_BLOCK, Material.EMERALD_BLOCK};
+        Material[] pyramid = {Material.IRON_BLOCK, Material.GOLD_BLOCK, Material.EMERALD_BLOCK, Material.DIAMOND_BLOCK};
         for (int layer = 0; layer < 4; layer++) {
             int half = 4 - layer;
             int y = beaconY - 4 + layer;
@@ -822,6 +897,15 @@ public final class LobbyService implements Listener, CommandExecutor {
                     int x = cx + dx, z = cz + dz;
                     changes.add(() -> set(world, x, y, z, material));
                 }
+            }
+        }
+        for (int dx = -5; dx <= 5; dx++) {
+            for (int dz = -5; dz <= 5; dz++) {
+                double distance = Math.hypot(dx, dz);
+                if (distance < 4.5 || distance > 5.7) continue;
+                int x = cx + dx, z = cz + dz;
+                changes.add(() -> set(world, x, beaconY - 1, z,
+                        Math.floorMod(x * 17 + z * 7, 3) == 0 ? Material.POLISHED_DEEPSLATE : Material.SMOOTH_BASALT));
             }
         }
         changes.add(() -> set(world, cx, beaconY, cz, Material.BEACON));
@@ -849,20 +933,37 @@ public final class LobbyService implements Listener, CommandExecutor {
         int cx = blockCenterX(), cz = blockCenterZ();
         int radius = visualRadius();
         int gate = gateOffset();
-        int inner = Math.max(13, radius / 3);
+        int inner = Math.max(16, radius / 3 + 3);
+        int outer = Math.max(28, radius - 10);
         for (int x = cx - radius - 2; x <= cx + radius + 2; x++) {
             for (int z = cz - radius - 2; z <= cz + radius + 2; z++) {
                 int dx = x - cx, dz = z - cz;
                 double distance = Math.hypot(dx, dz);
-                boolean centralMoss = distance <= 7.5;
-                boolean circularWalk = distance >= inner && distance <= inner + 3.5;
-                boolean northSouth = Math.abs(dx) <= 2 && distance >= inner + 2 && Math.abs(dz) <= gate;
-                boolean eastWest = Math.abs(dz) <= 2 && distance >= inner + 2 && Math.abs(dx) <= gate;
-                if (!centralMoss && !circularWalk && !northSouth && !eastWest) continue;
-                int y = naturalSurfaceY(world, x, z);
-                Material material = centralMoss ? (Math.floorMod(x + z, 5) == 0 ? Material.ROOTED_DIRT : Material.MOSS_BLOCK)
-                        : Math.floorMod(x * 31 + z * 17, 9) == 0 ? Material.MOSSY_COBBLESTONE
-                        : Math.floorMod(x * 13 + z * 7, 5) == 0 ? Material.MUD_BRICKS : Material.PACKED_MUD;
+                boolean centralSanctum = distance <= 11.5;
+                boolean innerRing = distance >= inner && distance <= inner + 3.8;
+                boolean outerRing = distance >= outer && distance <= outer + 2.2;
+                boolean northSouth = Math.abs(dx) <= 3 && distance >= 10 && Math.abs(dz) <= gate;
+                boolean eastWest = Math.abs(dz) <= 3 && distance >= 10 && Math.abs(dx) <= gate;
+                boolean diagonalTrail = Math.abs(Math.abs(dx) - Math.abs(dz)) <= 2 && distance >= inner - 1 && distance <= outer + 1
+                        && ((dx > 0 && dz < 0) || (dx < 0 && dz > 0));
+                if (!centralSanctum && !innerRing && !outerRing && !northSouth && !eastWest && !diagonalTrail) continue;
+                int y = plannedSurfaceY(world, x, z);
+                Material material;
+                int noise = Math.floorMod(x * 31 + z * 17, 11);
+                if (centralSanctum) {
+                    material = distance > 8.7 ? Material.POLISHED_DEEPSLATE
+                            : noise <= 2 ? Material.MOSSY_COBBLESTONE
+                            : noise == 3 ? Material.COBBLESTONE
+                            : Material.MOSS_BLOCK;
+                } else if (innerRing || outerRing) {
+                    material = noise <= 2 ? Material.MOSSY_STONE_BRICKS
+                            : noise == 3 ? Material.CHISELED_STONE_BRICKS
+                            : Material.STONE_BRICKS;
+                } else {
+                    material = noise <= 2 ? Material.MOSSY_COBBLESTONE
+                            : noise <= 4 ? Material.PACKED_MUD
+                            : Material.MUD_BRICKS;
+                }
                 int blockX = x, blockZ = z;
                 changes.add(() -> set(world, blockX, y, blockZ, material));
                 clearPlants(world, changes, x, y + 1, z);
@@ -884,9 +985,10 @@ public final class LobbyService implements Listener, CommandExecutor {
             int x = cx + dx, z = cz + dz;
             long key = (((long) x) << 32) ^ (z & 0xffffffffL);
             if (!planned.add(key)) continue;
-            int y = naturalSurfaceY(world, x, z);
+            int y = plannedSurfaceY(world, x, z);
             Material wall = Math.floorMod(x + z, 7) == 0 ? Material.COBBLESTONE_WALL : Material.MOSSY_COBBLESTONE_WALL;
             changes.add(() -> set(world, x, y + 1, z, wall));
+            if (Math.floorMod(x * 5 + z * 3, 4) == 0) changes.add(leaves(world, x, y + 2, z, Material.AZALEA_LEAVES));
         }
     }
 
@@ -905,25 +1007,32 @@ public final class LobbyService implements Listener, CommandExecutor {
         for (int value : side) {
             int x = cx + offsetX + (alongX ? value : 0);
             int z = cz + offsetZ + (alongX ? 0 : value);
-            beamY = Math.max(beamY, naturalSurfaceY(world, x, z) + 8);
+            beamY = Math.max(beamY, plannedSurfaceY(world, x, z) + 10);
         }
         final int top = beamY;
         for (int value : side) {
             int x = cx + offsetX + (alongX ? value : 0);
             int z = cz + offsetZ + (alongX ? 0 : value);
-            int ground = naturalSurfaceY(world, x, z);
+            int ground = plannedSurfaceY(world, x, z);
             for (int y = ground + 1; y <= top; y++) {
                 Material material = y == ground + 1 ? Material.CHISELED_STONE_BRICKS
-                        : (y + value) % 3 == 0 ? Material.MOSSY_STONE_BRICKS : Material.STONE_BRICKS;
+                        : (y + value) % 4 == 0 ? Material.MOSSY_STONE_BRICKS
+                        : y >= top - 1 ? Material.POLISHED_DEEPSLATE : Material.STONE_BRICKS;
                 int fy = y;
                 changes.add(() -> set(world, x, fy, z, material));
             }
+            changes.add(leaves(world, x, top + 1, z, Material.FLOWERING_AZALEA_LEAVES));
         }
         for (int value = -7; value <= 7; value++) {
             int x = cx + offsetX + (alongX ? value : 0);
             int z = cz + offsetZ + (alongX ? 0 : value);
-            Material material = Math.abs(value) == 7 ? Material.CHISELED_STONE_BRICKS : Material.MOSSY_STONE_BRICKS;
+            Material material = Math.abs(value) == 7 ? Material.CHISELED_STONE_BRICKS
+                    : Math.abs(value) <= 2 ? Material.POLISHED_DEEPSLATE : Material.MOSSY_STONE_BRICKS;
             changes.add(() -> set(world, x, top, z, material));
+            if (Math.abs(value) <= 5 && Math.floorMod(value, 2) == 0) {
+                int lx = x, lz = z;
+                changes.add(() -> set(world, lx, top + 1, lz, Material.PURPLE_STAINED_GLASS));
+            }
         }
         int middleX = cx + offsetX, middleZ = cz + offsetZ;
         changes.add(() -> set(world, middleX, top - 1, middleZ, Material.IRON_CHAIN));
@@ -931,47 +1040,80 @@ public final class LobbyService implements Listener, CommandExecutor {
     }
 
     private void planNpcPavilions(World world, List<Runnable> changes) {
-        planPavilion(world, changes, -10, 14, Material.LIME_WOOL, Material.CARTOGRAPHY_TABLE, Material.BOOKSHELF);
-        planPavilion(world, changes, 14, 8, Material.YELLOW_WOOL, Material.BARREL, Material.CRAFTING_TABLE);
-        planPavilion(world, changes, -14, -8, Material.RED_WOOL, Material.LODESTONE, Material.SMITHING_TABLE);
-        planPavilion(world, changes, 8, -14, Material.LIGHT_BLUE_WOOL, Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE);
-        planPavilion(world, changes, 18, -18, Material.PURPLE_WOOL, Material.ENCHANTING_TABLE, Material.SMITHING_TABLE);
+        planPavilion(world, changes, -10, 14, Material.LIME_CARPET, Material.LIME_STAINED_GLASS,
+                Material.CARTOGRAPHY_TABLE, Material.BOOKSHELF);
+        planPavilion(world, changes, 14, 8, Material.YELLOW_CARPET, Material.YELLOW_STAINED_GLASS,
+                Material.BARREL, Material.CRAFTING_TABLE);
+        planPavilion(world, changes, -14, -8, Material.RED_CARPET, Material.RED_STAINED_GLASS,
+                Material.LODESTONE, Material.SMITHING_TABLE);
+        planPavilion(world, changes, 8, -14, Material.LIGHT_BLUE_CARPET, Material.LIGHT_BLUE_STAINED_GLASS,
+                Material.CARTOGRAPHY_TABLE, Material.FLETCHING_TABLE);
+        planPavilion(world, changes, 18, -18, Material.PURPLE_CARPET, Material.PURPLE_STAINED_GLASS,
+                Material.ENCHANTING_TABLE, Material.SMITHING_TABLE);
     }
 
-    private void planPavilion(World world, List<Runnable> changes, int dx, int dz, Material accent, Material workstation, Material secondary) {
+    private void planPavilion(World world, List<Runnable> changes, int dx, int dz, Material accentCarpet,
+                              Material accentGlass, Material workstation, Material secondary) {
         int cx = blockCenterX() + dx, cz = blockCenterZ() + dz;
-        int y = naturalSurfaceY(world, cx, cz);
-        for (int x = cx - 3; x <= cx + 3; x++) {
-            for (int z = cz - 3; z <= cz + 3; z++) {
-                int fx = x, fz = z, fy = naturalSurfaceY(world, x, z);
-                Material floor = Math.abs(x - cx) == 3 || Math.abs(z - cz) == 3 ? Material.SPRUCE_PLANKS
+        int y = plannedSurfaceY(world, cx, cz);
+        for (int x = cx - 5; x <= cx + 5; x++) {
+            for (int z = cz - 5; z <= cz + 5; z++) {
+                double distance = Math.hypot(x - cx, z - cz);
+                if (distance > 5.2) continue;
+                int fx = x, fz = z, fy = plannedSurfaceY(world, x, z);
+                Material floor = distance > 4.1 ? Material.SPRUCE_PLANKS
+                        : Math.floorMod(x * 7 + z * 5, 7) == 0 ? Material.MOSSY_COBBLESTONE
                         : Math.floorMod(x + z, 2) == 0 ? Material.PACKED_MUD : Material.MOSS_BLOCK;
                 changes.add(() -> set(world, fx, fy, fz, floor));
                 clearPlants(world, changes, fx, fy + 1, fz);
-            }
-        }
-        int[][] corners = {{-3, -3}, {-3, 3}, {3, -3}, {3, 3}};
-        for (int[] corner : corners) {
-            int x = cx + corner[0], z = cz + corner[1];
-            int postY = naturalSurfaceY(world, x, z);
-            for (int py = postY + 1; py <= postY + 3; py++) {
-                int fy = py;
-                changes.add(() -> set(world, x, fy, z, Material.SPRUCE_FENCE));
-            }
-            changes.add(() -> set(world, x, postY + 4, z, accent));
-        }
-        for (int x = cx - 2; x <= cx + 2; x++) {
-            for (int z = cz - 2; z <= cz + 2; z++) {
-                if (Math.abs(x - cx) == 2 || Math.abs(z - cz) == 2 || Math.floorMod(x + z, 2) == 0) {
-                    int fx = x, fz = z;
-                    changes.add(() -> set(world, fx, y + 4, fz, accent));
+                if (distance <= 2.1 && Math.floorMod(x * 11 + z * 3, 4) == 0) {
+                    changes.add(placeIfAir(world, fx, fy + 1, fz, accentCarpet));
                 }
             }
         }
-        changes.add(() -> set(world, cx - 2, y + 1, cz, workstation));
-        changes.add(() -> set(world, cx + 2, y + 1, cz, secondary));
-        changes.add(() -> set(world, cx, y + 1, cz - 3, Material.LANTERN));
-        changes.add(() -> set(world, cx, y + 1, cz + 3, Material.LANTERN));
+
+        int towardX = Integer.compare(blockCenterX(), cx);
+        int towardZ = Integer.compare(blockCenterZ(), cz);
+        if (towardX == 0 && towardZ == 0) towardZ = 1;
+        int sideX = towardZ;
+        int sideZ = -towardX;
+        int backX = -towardX;
+        int backZ = -towardZ;
+        int[][] posts = {
+                {backX * 3 + sideX * 3, backZ * 3 + sideZ * 3},
+                {backX * 3 - sideX * 3, backZ * 3 - sideZ * 3},
+                {sideX * 4, sideZ * 4},
+                {-sideX * 4, -sideZ * 4}
+        };
+        for (int[] post : posts) {
+            int x = cx + post[0], z = cz + post[1];
+            int postY = plannedSurfaceY(world, x, z);
+            for (int py = postY + 1; py <= postY + 4; py++) {
+                int fy = py;
+                changes.add(log(world, x, fy, z, Material.SPRUCE_LOG, Axis.Y));
+            }
+            changes.add(leaves(world, x, postY + 5, z, Material.FLOWERING_AZALEA_LEAVES));
+        }
+
+        int archY = y + 5;
+        for (int lateral = -3; lateral <= 3; lateral++) {
+            int x = cx + backX * 3 + sideX * lateral;
+            int z = cz + backZ * 3 + sideZ * lateral;
+            changes.add(log(world, x, archY, z, Material.DARK_OAK_LOG,
+                    Math.abs(sideX) > Math.abs(sideZ) ? Axis.X : Axis.Z));
+            if (Math.abs(lateral) <= 2) {
+                int fx = x, fz = z;
+                changes.add(() -> set(world, fx, archY - 1, fz, accentGlass));
+            }
+        }
+        planLeafCluster(changes, world, cx + backX * 2, y + 6, cz + backZ * 2, 3);
+
+        int leftX = cx + sideX * 3, leftZ = cz + sideZ * 3;
+        int rightX = cx - sideX * 3, rightZ = cz - sideZ * 3;
+        changes.add(() -> set(world, leftX, plannedSurfaceY(world, leftX, leftZ) + 1, leftZ, workstation));
+        changes.add(() -> set(world, rightX, plannedSurfaceY(world, rightX, rightZ) + 1, rightZ, secondary));
+        changes.add(() -> set(world, cx + backX * 2, y + 3, cz + backZ * 2, Material.LANTERN));
+        changes.add(() -> set(world, cx - backX * 2, y + 1, cz - backZ * 2, Material.LANTERN));
     }
 
     private void planLanternsAndGardens(World world, List<Runnable> changes) {
@@ -981,21 +1123,21 @@ public final class LobbyService implements Listener, CommandExecutor {
             double angle = Math.toRadians(degree + 22.5);
             int x = cx + (int) Math.round(Math.cos(angle) * Math.max(22, radius - 12));
             int z = cz + (int) Math.round(Math.sin(angle) * Math.max(22, radius - 12));
-            int y = terrainSurfaceY(world, x, z);
+            int y = plannedSurfaceY(world, x, z);
             changes.add(() -> set(world, x, y + 1, z, Material.MOSSY_COBBLESTONE_WALL));
             changes.add(() -> set(world, x, y + 2, z, Material.SPRUCE_FENCE));
             changes.add(() -> set(world, x, y + 3, z, Material.LANTERN));
         }
 
         Material[] flowers = {Material.DANDELION, Material.POPPY, Material.CORNFLOWER, Material.OXEYE_DAISY,
-                Material.ALLIUM, Material.AZURE_BLUET};
-        for (int degree = 0; degree < 360; degree += 12) {
+                Material.ALLIUM, Material.AZURE_BLUET, Material.PINK_PETALS, Material.BLUE_ORCHID};
+        for (int degree = 0; degree < 360; degree += 9) {
             double angle = Math.toRadians(degree);
-            int flowerRadius = Math.max(22, radius - 9) + Math.floorMod(degree, 5);
+            int flowerRadius = Math.max(21, radius - 12) + Math.floorMod(degree, 9);
             int x = cx + (int) Math.round(Math.cos(angle) * flowerRadius);
             int z = cz + (int) Math.round(Math.sin(angle) * flowerRadius);
-            int y = terrainSurfaceY(world, x, z);
-            Material flower = flowers[(degree / 12) % flowers.length];
+            int y = plannedSurfaceY(world, x, z);
+            Material flower = flowers[(degree / 9) % flowers.length];
             changes.add(() -> {
                 Block above = world.getBlockAt(x, y + 1, z);
                 if (above.getType().isAir()) above.setType(flower, false);
@@ -1031,18 +1173,18 @@ public final class LobbyService implements Listener, CommandExecutor {
                 DyeColor.PURPLE, Material.NETHERITE_SWORD);
         registry.saveToStore();
 
-        spawnLabel(world, 0, Math.max(17, visualRadius() / 2), 4.2, Component.text("NEMETON\n", NamedTextColor.GOLD)
-                .append(Component.text("ZONA SEGURA • sem PvP • sem grife", NamedTextColor.GREEN)), "label:welcome", 1.35f);
+        spawnLabel(world, 0, Math.max(17, visualRadius() / 2), 6.0, Component.text("NEMETON\n", NamedTextColor.GOLD)
+                .append(Component.text("ZONA SEGURA • sem PvP • sem grife", NamedTextColor.GREEN)), "label:welcome", 2.15f);
         spawnLabel(world, -10, 14, 3.4, Component.text("/guia  /kit  /mapa\n", NamedTextColor.GREEN)
-                .append(Component.text("primeiros passos", NamedTextColor.GRAY)), "label:cmd:guide", 1.18f);
+                .append(Component.text("primeiros passos", NamedTextColor.GRAY)), "label:cmd:guide", 1.55f);
         spawnLabel(world, 14, 8, 3.4, Component.text("/troca  /comercio\n", NamedTextColor.GOLD)
-                .append(Component.text("negociação segura", NamedTextColor.GRAY)), "label:cmd:trade", 1.18f);
+                .append(Component.text("negociação segura", NamedTextColor.GRAY)), "label:cmd:trade", 1.55f);
         spawnLabel(world, -14, -8, 3.4, Component.text("/clan  /raid\n", NamedTextColor.RED)
-                .append(Component.text("grupo, claims e guerras", NamedTextColor.GRAY)), "label:cmd:clans", 1.18f);
+                .append(Component.text("grupo, claims e guerras", NamedTextColor.GRAY)), "label:cmd:clans", 1.55f);
         spawnLabel(world, 8, -14, 3.4, Component.text("/santuario  /lapide  /mochila\n", NamedTextColor.AQUA)
-                .append(Component.text("base pessoal e exploração", NamedTextColor.GRAY)), "label:cmd:wilds", 1.18f);
+                .append(Component.text("base pessoal e exploração", NamedTextColor.GRAY)), "label:cmd:wilds", 1.55f);
         spawnLabel(world, 18, -18, 3.4, Component.text("/mods  /mods itens\n", NamedTextColor.LIGHT_PURPLE)
-                .append(Component.text("Vanilla+ autoral e minimap", NamedTextColor.GRAY)), "label:cmd:mods", 1.18f);
+                .append(Component.text("Vanilla+ autoral e minimap", NamedTextColor.GRAY)), "label:cmd:mods", 1.55f);
         int exit = gateOffset() - 2;
         spawnExitLabel(world, 0, -exit, "NORTE");
         spawnExitLabel(world, 0, exit, "SUL");
@@ -1160,7 +1302,7 @@ public final class LobbyService implements Listener, CommandExecutor {
             display.setBillboard(Display.Billboard.CENTER);
             display.setSeeThrough(false);
             display.setShadowed(true);
-            display.setViewRange(1.7f);
+            display.setViewRange(3.0f);
             display.setTransformation(new Transformation(
                     new Vector3f(0, 0, 0),
                     new AxisAngle4f(),
@@ -1225,6 +1367,25 @@ public final class LobbyService implements Listener, CommandExecutor {
         }
     }
 
+    private int plannedSurfaceY(World world, int x, int z) {
+        int base = lobbyBaseY(world);
+        double distance = Math.hypot(x - blockCenterX(), z - blockCenterZ());
+        if (distance <= 24) return base;
+        if (distance <= 34) return base + (int) Math.round((distance - 24) / 7.0);
+        int natural = terrainSurfaceY(world, x, z);
+        int terrace = base + 2 + (int) Math.round((distance - 34) / 5.5);
+        return clamp(natural, base - 1, Math.min(base + 5, terrace));
+    }
+
+    private int lobbyBaseY(World world) {
+        int configured = (int) Math.floor(settings.hub().y()) - 1;
+        return clamp(configured, world.getMinHeight() + 8, world.getMaxHeight() - NEMETON_TREE_HEIGHT - 40);
+    }
+
+    private int clamp(int value, int minimum, int maximum) {
+        return Math.max(minimum, Math.min(maximum, value));
+    }
+
     private int naturalSurfaceY(World world, int x, int z) {
         int maximum = Math.min(world.getMaxHeight() - 2, 110);
         for (int y = maximum; y >= world.getMinHeight(); y--) {
@@ -1248,7 +1409,8 @@ public final class LobbyService implements Listener, CommandExecutor {
             case GRASS_BLOCK, DIRT, COARSE_DIRT, ROOTED_DIRT, PODZOL, MYCELIUM, MOSS_BLOCK,
                     STONE, ANDESITE, DIORITE, GRANITE, SAND, RED_SAND, GRAVEL, CLAY,
                     DIRT_PATH, PACKED_MUD, MUD_BRICKS, COBBLESTONE, MOSSY_COBBLESTONE,
-                    STONE_BRICKS, MOSSY_STONE_BRICKS, SNOW_BLOCK -> true;
+                    STONE_BRICKS, MOSSY_STONE_BRICKS, POLISHED_DEEPSLATE, SMOOTH_BASALT,
+                    DEEPSLATE_BRICKS, SNOW_BLOCK -> true;
             default -> false;
         };
     }
@@ -1256,9 +1418,14 @@ public final class LobbyService implements Listener, CommandExecutor {
     private boolean canBecomeMeadow(Material material) {
         return switch (material) {
             case GRASS_BLOCK, DIRT, COARSE_DIRT, ROOTED_DIRT, PODZOL, MYCELIUM, SNOW_BLOCK,
-                    STONE, ANDESITE, DIORITE, GRANITE -> true;
+                    STONE, ANDESITE, DIORITE, GRANITE, PACKED_MUD, MUD_BRICKS -> true;
             default -> false;
         };
+    }
+
+    private boolean shouldClearLobbySculpture(Material material) {
+        if (material.isAir() || material == Material.BEDROCK) return false;
+        return true;
     }
 
     private boolean shouldClearLobbyDecoration(Material material) {
@@ -1307,7 +1474,8 @@ public final class LobbyService implements Listener, CommandExecutor {
             case GRASS_BLOCK, DIRT, COARSE_DIRT, ROOTED_DIRT, PODZOL, MYCELIUM, MOSS_BLOCK,
                     STONE, ANDESITE, DIORITE, GRANITE, SAND, RED_SAND, GRAVEL, CLAY,
                     DIRT_PATH, PACKED_MUD, MUD_BRICKS, COBBLESTONE, MOSSY_COBBLESTONE,
-                    STONE_BRICKS, MOSSY_STONE_BRICKS -> true;
+                    STONE_BRICKS, MOSSY_STONE_BRICKS, POLISHED_DEEPSLATE, SMOOTH_BASALT,
+                    DEEPSLATE_BRICKS, SPRUCE_PLANKS -> true;
             default -> false;
         };
     }
@@ -1334,10 +1502,17 @@ public final class LobbyService implements Listener, CommandExecutor {
         };
     }
 
+    private Runnable placeIfAir(World world, int x, int y, int z, Material material) {
+        return () -> {
+            Block block = world.getBlockAt(x, y, z);
+            if (block.getType().isAir()) block.setType(material, false);
+        };
+    }
+
     private World world() { return Bukkit.getWorld(settings.hub().world()); }
     private int blockCenterX() { return (int) Math.floor(settings.hub().centerX()); }
     private int blockCenterZ() { return (int) Math.floor(settings.hub().centerZ()); }
-    private int beaconY() { return (int) Math.floor(settings.hub().y()) + 1; }
+    private int beaconY() { return (int) Math.floor(settings.hub().y()); }
     private int visualRadius() { return Math.max(MIN_VISUAL_RADIUS, Math.min(settings.hub().radius(), MAX_VISUAL_RADIUS)); }
     private int gateOffset() { return Math.max(visualRadius() - 3, 26); }
     private double centered(double coordinate) { return Math.floor(coordinate) + 0.5; }
