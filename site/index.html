@@ -3,315 +3,163 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Nemeton é um SMP comunitário Java + Bedrock: survival Vanilla+ com santuários, clãs, raids reversíveis, trocas, eventos e Discord integrado." />
-    <meta name="theme-color" content="#0c1510" />
-    <meta property="og:title" content="Nemeton — SMP Java + Bedrock" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://nemeton.olua.me/" />
-    <meta property="og:description" content="Escolha a paz de um santuário ou a política dos clãs. Um survival comunitário cross-play, próximo do vanilla e feito para a galera." />
-    <meta property="og:image" content="https://nemeton.olua.me/assets/nemeton-welcome.png" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="description" content="Nemeton — survival Vanilla+ cross-play entre Java e Bedrock." />
+    <meta name="theme-color" content="#101615" />
     <link rel="canonical" href="https://nemeton.olua.me/" />
     <link rel="icon" href="/assets/nemeton-emblem.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css" />
-    <title>Nemeton — SMP Java + Bedrock</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700;800&family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/page-teste/styles.css" />
+    <title>Nemeton // Clareira viva</title>
   </head>
   <body>
     <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
-    <div class="grain" aria-hidden="true"></div>
+    <div class="ambient" aria-hidden="true"><span></span><span></span><span></span></div>
 
     <header class="topbar">
-      <a class="brand" href="#inicio" aria-label="Ir ao início">
-        <img src="/assets/nemeton-emblem.png" alt="" />
-        <span>Nemeton</span>
+      <a class="brand" href="#inicio" aria-label="Nemeton, início">
+        <span class="brand-mark"><img src="/assets/nemeton-emblem.png" alt="" /></span>
+        <span class="brand-copy"><strong>NEMETON</strong><small>clareira comunitária</small></span>
       </a>
-      <nav aria-label="Navegação principal">
-        <a href="#essencia">Essência</a>
-        <a href="#essencias">Essências</a>
+      <nav aria-label="Navegação da clareira">
+        <a href="#mundo">O mundo</a>
         <a href="#moradores">Moradores</a>
         <a href="#comandos">Comandos</a>
-        <a href="#eventos">Eventos</a>
+        <a href="#entrar">Entrar</a>
       </nav>
-      <a class="top-discord" href="https://discord.gg/GdsnyHGXw5" target="_blank" rel="noreferrer">Entrar no Discord <span aria-hidden="true">↗</span></a>
+      <a class="discord-link" href="https://discord.gg/GdsnyHGXw5" target="_blank" rel="noreferrer">
+        <svg aria-hidden="true"><use href="#icon-discord" /></svg><span>Discord</span><b>↗</b>
+      </a>
     </header>
 
     <main id="conteudo">
       <section class="hero" id="inicio">
-        <div class="hero-copy reveal">
-          <p class="kicker">SMP comunitário • Java + Bedrock • 15 vagas</p>
-          <h1><span>Um mundo</span><span>para criar</span><em>histórias,</em><span>não</span><span>obrigações.</span></h1>
-          <p class="lead">Survival raiz com os confortos certos: mochila, lápide, troca segura, territórios e uma guerra que não apaga semanas de construção.</p>
-          <div class="connect-actions" id="entrar">
-            <button class="connect-card copy-button" data-copy="nemeton.olua.me">
-              <span class="edition">Java Edition</span>
-              <strong>nemeton.olua.me</strong>
-              <span class="copy-hint">clique para copiar</span>
-            </button>
-            <button class="connect-card copy-button" data-copy="b.nemeton.olua.me">
-              <span class="edition">Bedrock Edition</span>
-              <strong>b.nemeton.olua.me</strong>
-              <span class="copy-hint">porta 59460</span>
-            </button>
+        <div class="hero-copy">
+          <div class="status-line"><span class="online-dot"></span><span>Servidor online</span><i></i><span>Java + Bedrock</span><i></i><span>15 vagas</span></div>
+          <h1>Entre na clareira.<br /><em>Deixe sua marca.</em></h1>
+          <p class="hero-lead">Um survival persistente para jogar do seu jeito: construa um santuário, erga um clã ou reúna a turma para enfrentar o próximo boss.</p>
+          <div class="hero-actions">
+            <a class="primary-cta" href="#entrar"><span>Jogar agora</span><b>→</b></a>
+            <a class="text-cta" href="#mundo">Explorar o mundo <span>↓</span></a>
           </div>
-          <p class="server-note"><span class="status-dot"></span> Online para a temporada • Discord e vínculo de conta obrigatórios</p>
+          <div class="world-stats" aria-label="Estado do servidor">
+            <div><strong>01</strong><span>mundo compartilhado</span></div>
+            <div><strong>0$</strong><span>vantagem paga</span></div>
+            <div><strong>∞</strong><span>histórias possíveis</span></div>
+          </div>
         </div>
-        <figure class="hero-visual reveal">
-          <img src="/assets/nemeton-welcome.png" alt="A árvore colossal do Nemeton iluminada por seu farol sobrenatural" />
-          <figcaption><strong>O Nemeton</strong><span>spawn • zona neutra • ponto de encontro</span></figcaption>
+        <figure class="hero-scene">
+          <img src="/assets/nemeton-welcome.png" alt="A árvore colossal do Nemeton iluminada à noite" />
+          <div class="scene-frame"></div>
+          <figcaption><span class="coordinate-dot"></span><span>clareira central</span><code>X 16064 · Z -32065</code></figcaption>
+          <div class="scene-stamp"><span>SPAWN</span><strong>NEMETON</strong><small>zona neutra</small></div>
         </figure>
       </section>
 
-      <section class="manifesto" id="essencia">
-        <div class="manifesto-title reveal">
-          <p class="kicker">A essência</p>
-          <h2>Vanilla que respeita seu tempo.</h2>
-        </div>
-        <div class="manifesto-copy reveal">
-          <p>O Nemeton não tenta transformar Minecraft em outro jogo. Você ainda minera, constrói, explora, cria farms e junta a turma para enfrentar o Dragon e o Wither.</p>
-          <p>O “plus” existe para tirar atrito: seus itens ficam numa lápide, sua mochila carrega a expedição e seus acordos têm regras claras. Sem loja administrativa, sem moeda infinita e sem vantagem paga.</p>
-        </div>
+      <section class="connection-rail" id="entrar" aria-label="Endereços para entrar">
+        <div class="rail-title"><span class="pixel-corner"></span><div><small>ABRA O PORTÃO</small><strong>Escolha sua edição</strong></div></div>
+        <button class="server-address copy-button" data-copy="nemeton.olua.me" type="button">
+          <span class="edition-icon java-icon">J</span><span><small>JAVA EDITION</small><strong>nemeton.olua.me</strong></span><b>copiar</b>
+        </button>
+        <button class="server-address copy-button" data-copy="b.nemeton.olua.me" type="button">
+          <span class="edition-icon bedrock-icon">B</span><span><small>BEDROCK EDITION</small><strong>b.nemeton.olua.me <i>• porta 59460</i></strong></span><b>copiar</b>
+        </button>
+        <div class="rail-note"><svg aria-hidden="true"><use href="#icon-shield" /></svg><span>Discord vinculado<br /><small>sem Twitch, sem assinatura</small></span></div>
       </section>
 
-      <section class="paths" aria-label="Formas de jogar">
-        <article class="path path-peace reveal">
-          <span class="path-index">01 / paz</span>
-          <div>
+      <section class="section world-section" id="mundo">
+        <div class="section-heading">
+          <span class="section-glyph">✦</span>
+          <div><h2>Um mundo com espaço<br />para dois jeitos de jogar.</h2><p>As regras protegem a diversão sem transformar o survival em outro jogo.</p></div>
+        </div>
+        <div class="world-grid">
+          <article class="world-panel sanctuary-panel">
+            <div class="panel-top"><span class="block-icon grass-block"><i></i></span><span class="panel-tag">CAMINHO DA PAZ</span><span class="panel-key">01</span></div>
             <h3>Santuário</h3>
-            <p>Para construir, minerar e viver sua vida sem invasão. Até quatro chunks conectados, protegidos contra roubo e grife.</p>
-          </div>
-          <ul>
-            <li>Você escolhe quem pode interagir.</li>
-            <li>Não participa de raids.</li>
-            <li>Ideal para solo, casal e construtores.</li>
-          </ul>
-        </article>
-        <article class="path path-war reveal">
-          <span class="path-index">02 / risco</span>
-          <div>
+            <p>Seu pedaço permanente do mundo. Até quatro chunks conectados, sem invasão, roubo ou grife. Você escolhe quem recebe a chave.</p>
+            <div class="panel-command"><code>/santuario marcar</code><span>proteger terreno</span></div>
+            <div class="panel-foot"><span>construção segura</span><span>acesso por convite</span></div>
+          </article>
+          <article class="world-panel clan-panel">
+            <div class="panel-top"><span class="block-icon obsidian-block"><i></i></span><span class="panel-tag">CAMINHO DO RISCO</span><span class="panel-key">02</span></div>
             <h3>Clã</h3>
-            <p>Para quem quer bandeira, território, diplomacia e conflito organizado. Entrar significa aceitar atacar e ser atacado.</p>
-          </div>
-          <ul>
-            <li>Claims coletivos conectados.</li>
-            <li>Cargos, canal privado e alianças.</li>
-            <li>Raids agendadas e reversíveis.</li>
-          </ul>
-        </article>
-      </section>
-
-      <section class="essence-lab section" id="essencias">
-        <header class="section-head reveal">
-          <div>
-            <p class="kicker">Essências do Nemeton</p>
-            <h2>O brilho raro que alimenta o Vanilla+.</h2>
-          </div>
-          <p>As essências são o material de forja do Nemeton+. Elas aparecem jogando de verdade: mineração, Wither, Dragon e eventos comunitários.</p>
-        </header>
-        <div class="essence-layout reveal">
-          <article class="essence-source">
-            <span class="source-mark">✦</span>
-            <h3>Como conseguir</h3>
-            <p>Minere minérios do mundo normal. Cobre tem chance pequena; ferro e redstone sobem um pouco; ouro e lápis são melhores; diamante e esmeralda são os achados mais promissores.</p>
-            <p>Eventos também importam: Wither deixa Coração Abissal + 16 essências; Dragon deixa Coração do Fim + 24 essências. Esses corações viram peças de temporada.</p>
+            <p>Uma bandeira, território e diplomacia. Quem entra aceita atacar e ser atacado — com raids marcadas e construções restauradas.</p>
+            <div class="panel-command"><code>/clan criar &lt;nome&gt; &lt;tag&gt;</code><span>erguer bandeira</span></div>
+            <div class="panel-foot"><span>claims conectados</span><span>guerra com hora marcada</span></div>
           </article>
-          <div class="recipe-grid" aria-label="Usos das essências">
-            <article>
-              <span>01</span>
-              <h3>Essência do Nemeton</h3>
-              <p>Drop raro de mineração. Ametista comum não substitui uma essência verdadeira.</p>
-              <code>/mods itens</code>
-            </article>
-            <article>
-              <span>02</span>
-              <h3>Lâmina do Nemeton</h3>
-              <p>Espada de diamante + 4 essências. Sharpness IV, Looting II e durabilidade para virar item de uso real.</p>
-              <code>4E + espada</code>
-            </article>
-            <article>
-              <span>03</span>
-              <h3>Machado do Guardião</h3>
-              <p>Machado de diamante + Coração Abissal + 3 essências. A peça de quem venceu um Wither em evento.</p>
-              <code>3E + Wither</code>
-            </article>
-            <article>
-              <span>04</span>
-              <h3>Peitoral Sentinela</h3>
-              <p>Peitoral de diamante + Coração do Fim + 7 essências. Proteção IV, Mending e trim de relíquia.</p>
-              <code>7E + Dragon</code>
-            </article>
-            <article>
-              <span>05</span>
-              <h3>Correção de item</h3>
-              <p>Se um item antigo voltar da lápide parecendo ametista normal, use o reparador para restaurar meta/visual.</p>
-              <code>/mods restaurar</code>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section class="residents section" id="moradores">
-        <header class="section-head reveal">
-          <div>
-            <p class="kicker">Os moradores da clareira</p>
-            <h2>Converse com quem conhece o caminho.</h2>
-          </div>
-          <p>No lobby e aqui no site, cada morador cuida de uma parte da experiência. Passe o mouse, use Tab ou toque em um NPC.</p>
-        </header>
-
-        <div class="resident-stage reveal">
-          <div class="npc-roster" role="list" aria-label="Moradores do Nemeton">
-            <button class="npc-card active" type="button" role="listitem" data-npc="eira" aria-pressed="true">
-              <span class="npc-portrait npc-eira" aria-hidden="true"><img src="/assets/npcs/eira.png" alt="" loading="lazy" decoding="async" /><b>📖</b></span>
-              <span><strong>Eira</strong><small>guia e primeiros passos</small></span>
-            </button>
-            <button class="npc-card" type="button" role="listitem" data-npc="mara" aria-pressed="false">
-              <span class="npc-portrait npc-mara" aria-hidden="true"><img src="/assets/npcs/mara.png" alt="" loading="lazy" decoding="async" /><b>💎</b></span>
-              <span><strong>Mara</strong><small>trocas entre jogadores</small></span>
-            </button>
-            <button class="npc-card" type="button" role="listitem" data-npc="borin" aria-pressed="false">
-              <span class="npc-portrait npc-borin" aria-hidden="true"><img src="/assets/npcs/borin.png" alt="" loading="lazy" decoding="async" /><b>⚔</b></span>
-              <span><strong>Borin</strong><small>clãs, claims e raids</small></span>
-            </button>
-            <button class="npc-card" type="button" role="listitem" data-npc="tarin" aria-pressed="false">
-              <span class="npc-portrait npc-tarin" aria-hidden="true"><img src="/assets/npcs/tarin.png" alt="" loading="lazy" decoding="async" /><b>🧭</b></span>
-              <span><strong>Tarin</strong><small>exploração e proteção</small></span>
-            </button>
-            <button class="npc-card" type="button" role="listitem" data-npc="nara" aria-pressed="false">
-              <span class="npc-portrait npc-nara" aria-hidden="true"><img src="/assets/npcs/nara.png" alt="" loading="lazy" decoding="async" /><b>✦</b></span>
-              <span><strong>Nara</strong><small>Vanilla+ e itens autorais</small></span>
-            </button>
-          </div>
-
-          <article class="npc-dialogue" aria-live="polite">
-            <figure class="dialogue-portrait">
-              <img id="npc-avatar" src="/assets/npcs/eira.png" alt="Eira, guia do Nemeton" loading="lazy" decoding="async" />
-            </figure>
-            <div class="dialogue-copy">
-              <div class="dialogue-speaker"><span id="npc-role">Guia do Nemeton</span><strong id="npc-name">Eira</strong></div>
-              <p id="npc-quote">“Antes de partir, pegue seu kit e guarde o caminho de volta. A clareira sempre será uma zona segura.”</p>
-              <div class="dialogue-commands" id="npc-commands"></div>
-              <p class="dialogue-tip" id="npc-tip">Comece por /menu. No Bedrock, ele abre uma interface nativa.</p>
-            </div>
+          <article class="world-panel event-panel">
+            <div class="panel-top"><span class="block-icon beacon-block"><i></i></span><span class="panel-tag">O QUE VEM A SEGUIR</span><span class="panel-key">03</span></div>
+            <h3>Eventos</h3>
+            <p>Dragon, Wither e expedições são chamados no Discord. Junte a equipe, prepare seus kits e deixe a clareira contar a história.</p>
+            <div class="event-signal"><span></span><div><small>PRÓXIMO SINAL</small><strong>Expedição ao End</strong></div><b>em breve</b></div>
+            <div class="panel-foot"><span>vanilla + autoral</span><span>recompensas de temporada</span></div>
           </article>
         </div>
       </section>
 
-      <section class="journey section">
-        <header class="section-head reveal">
-          <div><p class="kicker">Sua primeira noite</p><h2>Do Discord à aventura em quatro passos.</h2></div>
-        </header>
-        <ol class="journey-list">
-          <li class="reveal"><span>01</span><div><h3>Entre e vincule</h3><p>Abra o Discord, entre no Minecraft e envie ao bot o código mostrado na tela. Nada de Twitch ou assinatura.</p></div></li>
-          <li class="reveal"><span>02</span><div><h3>Conheça a clareira</h3><p>Use <code>/menu</code>, pegue <code>/kit</code> e converse com os cinco moradores. O lobby é zona neutra: sem PvP, mobs ou grife.</p></div></li>
-          <li class="reveal"><span>03</span><div><h3>Escolha seu acordo</h3><p>Proteja uma base com santuário para viver em paz ou entre em um clã para disputar território.</p></div></li>
-          <li class="reveal"><span>04</span><div><h3>Deixe uma marca</h3><p>Construa, explore e organize eventos. O Overworld é persistente e não está planejado para sofrer wipe.</p></div></li>
-        </ol>
+      <section class="section residents-section" id="moradores">
+        <div class="section-heading heading-inline"><span class="section-glyph">☼</span><div><h2>Os moradores da clareira.</h2><p>Cada NPC aponta uma porta. Clique para ouvir a dica.</p></div></div>
+        <div class="resident-console">
+          <div class="resident-tabs" role="tablist" aria-label="Moradores do Nemeton">
+            <button class="resident-tab active" type="button" role="tab" aria-selected="true" aria-controls="dialogue" data-resident="eira"><img src="/assets/npcs/eira.png" alt="" /><span><strong>Eira</strong><small>guia</small></span></button>
+            <button class="resident-tab" type="button" role="tab" aria-selected="false" aria-controls="dialogue" data-resident="mara"><img src="/assets/npcs/mara.png" alt="" /><span><strong>Mara</strong><small>trocas</small></span></button>
+            <button class="resident-tab" type="button" role="tab" aria-selected="false" aria-controls="dialogue" data-resident="borin"><img src="/assets/npcs/borin.png" alt="" /><span><strong>Borin</strong><small>clãs</small></span></button>
+            <button class="resident-tab" type="button" role="tab" aria-selected="false" aria-controls="dialogue" data-resident="tarin"><img src="/assets/npcs/tarin.png" alt="" /><span><strong>Tarin</strong><small>exploração</small></span></button>
+            <button class="resident-tab" type="button" role="tab" aria-selected="false" aria-controls="dialogue" data-resident="nara"><img src="/assets/npcs/nara.png" alt="" /><span><strong>Nara</strong><small>Vanilla+</small></span></button>
+          </div>
+          <article class="dialogue" id="dialogue" role="tabpanel" aria-live="polite">
+            <div class="dialogue-art"><div class="dialogue-grid"></div><img id="dialogue-avatar" src="/assets/npcs/eira.png" alt="Eira, guia do Nemeton" /></div>
+            <div class="dialogue-copy"><div class="dialogue-label"><span class="online-dot"></span><span id="dialogue-role">GUIA DO NEMETON</span></div><h3 id="dialogue-name">Eira</h3><blockquote id="dialogue-quote">“Antes de partir, pegue seu kit e guarde o caminho de volta. A clareira sempre será uma zona segura.”</blockquote><div class="dialogue-actions" id="dialogue-actions"></div><p class="dialogue-note" id="dialogue-note">Comece por /menu. No Bedrock, ele abre uma interface nativa; no Java, organiza os mesmos caminhos.</p></div>
+          </article>
+        </div>
       </section>
 
-      <section class="command-section section" id="comandos">
-        <header class="section-head reveal">
-          <div><p class="kicker">Manual de bolso</p><h2>Todos os comandos, sem adivinhação.</h2></div>
-          <p>Clique em qualquer comando para copiar. Os campos entre <code>&lt; &gt;</code> devem ser substituídos; os que estão entre <code>[ ]</code> são opcionais.</p>
-        </header>
-        <div class="command-layout reveal">
-          <div class="tabs" role="tablist" aria-label="Categorias de comandos">
-            <button class="tab active" data-tab="basico" role="tab" aria-controls="basico" aria-selected="true">Começo</button>
-            <button class="tab" data-tab="santuario" role="tab" aria-controls="santuario" aria-selected="false">Santuário</button>
-            <button class="tab" data-tab="clan" role="tab" aria-controls="clan" aria-selected="false">Clã</button>
-            <button class="tab" data-tab="raid" role="tab" aria-controls="raid" aria-selected="false">Raid</button>
-            <button class="tab" data-tab="plus" role="tab" aria-controls="plus" aria-selected="false">Nemeton+</button>
+      <section class="section commands-section" id="comandos">
+        <div class="section-heading heading-inline"><span class="section-glyph">⌘</span><div><h2>Seu inventário começa<br />com uma boa orientação.</h2><p>Os comandos essenciais, em linguagem de jogador. Clique para copiar.</p></div></div>
+        <div class="command-book">
+          <div class="command-nav" role="tablist" aria-label="Categorias de comandos">
+            <button class="command-tab active" type="button" role="tab" aria-selected="true" data-command-tab="primeiros">Primeiros passos</button>
+            <button class="command-tab" type="button" role="tab" aria-selected="false" data-command-tab="protecao">Proteção</button>
+            <button class="command-tab" type="button" role="tab" aria-selected="false" data-command-tab="conflito">Conflito</button>
+            <button class="command-tab" type="button" role="tab" aria-selected="false" data-command-tab="plus">Nemeton+</button>
           </div>
-          <div class="panels">
-            <div class="command-panel active" id="basico" role="tabpanel">
-              <button class="command copy-button" data-copy="/menu"><code>/menu</code><span><strong>Painel principal.</strong> Interface adaptada para Java e Bedrock.</span></button>
-              <button class="command copy-button" data-copy="/guia"><code>/guia</code><span><strong>Manual dentro do jogo.</strong> Recebe novamente o livro do Nemeton.</span></button>
-              <button class="command copy-button" data-copy="/kit"><code>/kit</code><span><strong>Kit inicial.</strong> Ferramentas, comida, tochas, muda e botas; uma vez por jogador.</span></button>
-              <button class="command copy-button" data-copy="/kit lascado"><code>/kit lascado</code><span><strong>Alternativa de cobre.</strong> O mesmo começo, em sua versão lascada.</span></button>
-              <button class="command copy-button" data-copy="/nemeton"><code>/nemeton</code><span><strong>Retorno seguro.</strong> Volta à clareira quando você não está em combate ou raid.</span></button>
-              <button class="command copy-button" data-copy="/mapa"><code>/mapa</code><span><strong>Orientação.</strong> Entrega o mapa nativo e informa o mapa ao vivo.</span></button>
-              <button class="command copy-button" data-copy="/mochila"><code>/mochila</code><span><strong>Inventário extra.</strong> Abre sua mochila pessoal fabricável.</span></button>
-              <button class="command copy-button" data-copy="/lapide"><code>/lapide</code><span><strong>Recupere seus itens.</strong> Mostra a última morte e aponta a bússola.</span></button>
-              <button class="command copy-button" data-copy="/troca &lt;jogador&gt;"><code>/troca &lt;jogador&gt;</code><span><strong>Negociação segura.</strong> Os dois lados revisam e confirmam a oferta.</span></button>
-              <button class="command copy-button" data-copy="/mods"><code>/mods [itens]</code><span><strong>Conteúdo Vanilla+.</strong> Explica packs, minimapa e os itens autorais.</span></button>
+          <div class="command-pages">
+            <div class="command-page active" id="primeiros" role="tabpanel">
+              <button class="command-row copy-button" type="button" data-copy="/menu"><code>/menu</code><span><strong>Painel principal</strong>Uma entrada para todas as interfaces.</span><b>↗</b></button>
+              <button class="command-row copy-button" type="button" data-copy="/kit"><code>/kit</code><span><strong>Kit inicial</strong>Ferramentas, comida, tochas e botas para a primeira noite.</span><b>↗</b></button>
+              <button class="command-row copy-button" type="button" data-copy="/nemeton"><code>/nemeton</code><span><strong>Voltar à clareira</strong>Retorno seguro, bloqueado durante combate.</span><b>↗</b></button>
+              <button class="command-row copy-button" type="button" data-copy="/discord link"><code>/discord link</code><span><strong>Vincular conta</strong>Gere um código e envie ao bot por DM.</span><b>↗</b></button>
             </div>
-            <div class="command-panel" id="santuario" role="tabpanel">
-              <button class="command copy-button" data-copy="/santuario marcar"><code>/santuario marcar</code><span><strong>Proteja o chunk atual.</strong> Inicia ou amplia seu território pessoal.</span></button>
-              <button class="command copy-button" data-copy="/santuario expandir"><code>/santuario expandir</code><span><strong>Expanda a base.</strong> O novo chunk precisa estar conectado ao santuário.</span></button>
-              <button class="command copy-button" data-copy="/santuario remover"><code>/santuario remover</code><span><strong>Libere o chunk atual.</strong> Remove sua proteção daquele terreno.</span></button>
-              <button class="command copy-button" data-copy="/santuario confiar &lt;jogador&gt;"><code>/santuario confiar &lt;jogador&gt;</code><span><strong>Dê acesso.</strong> A pessoa poderá construir e interagir no seu santuário.</span></button>
-              <button class="command copy-button" data-copy="/santuario desconfiar &lt;jogador&gt;"><code>/santuario desconfiar &lt;jogador&gt;</code><span><strong>Revogue o acesso.</strong> O terreno volta a ser apenas seu.</span></button>
+            <div class="command-page" id="protecao" role="tabpanel">
+              <button class="command-row copy-button" type="button" data-copy="/santuario marcar"><code>/santuario marcar</code><span><strong>Marcar refúgio</strong>Protege o chunk onde você está.</span><b>↗</b></button>
+              <button class="command-row copy-button" type="button" data-copy="/santuario confiar &lt;jogador&gt;"><code>/santuario confiar</code><span><strong>Dar uma chave</strong>Permite que uma pessoa construa e interaja.</span><b>↗</b></button>
+              <button class="command-row copy-button" type="button" data-copy="/lapide"><code>/lapide</code><span><strong>Encontrar lápide</strong>Mostra o último ponto de morte e aponta o caminho.</span><b>↗</b></button>
             </div>
-            <div class="command-panel" id="clan" role="tabpanel">
-              <button class="command copy-button" data-copy="/clan criar &lt;nome&gt; &lt;tag&gt;"><code>/clan criar &lt;nome&gt; &lt;tag&gt;</code><span><strong>Erga sua bandeira.</strong> Cria clã, cargo e espaços privados no Discord.</span></button>
-              <button class="command copy-button" data-copy="/clan convidar &lt;jogador&gt;"><code>/clan convidar &lt;jogador&gt;</code><span><strong>Chame um membro.</strong> O convidado entra usando <code>/clan aceitar</code>.</span></button>
-              <button class="command copy-button" data-copy="/clan sair"><code>/clan sair</code><span><strong>Deixe o grupo.</strong> Líderes devem organizar a sucessão antes.</span></button>
-              <button class="command copy-button" data-copy="/clan promover &lt;jogador&gt;"><code>/clan promover &lt;jogador&gt;</code><span><strong>Delegue autoridade.</strong> Atualiza cargo no jogo e no Discord.</span></button>
-              <button class="command copy-button" data-copy="/clan claim"><code>/clan claim</code><span><strong>Reivindique o chunk.</strong> Claims de clã precisam permanecer conectados.</span></button>
-              <button class="command copy-button" data-copy="/clan unclaim"><code>/clan unclaim</code><span><strong>Abandone o chunk.</strong> Remove o terreno atual do clã.</span></button>
-              <button class="command copy-button" data-copy="/clan confiar &lt;jogador&gt;"><code>/clan confiar &lt;jogador&gt;</code><span><strong>Acesso externo.</strong> Autoriza alguém sem torná-lo membro.</span></button>
-              <button class="command copy-button" data-copy="/clan desconfiar &lt;jogador&gt;"><code>/clan desconfiar &lt;jogador&gt;</code><span><strong>Remova o acesso.</strong> Revoga a confiança em todos os claims.</span></button>
-              <button class="command copy-button" data-copy="/clan aliar &lt;tag&gt;"><code>/clan aliar &lt;tag&gt;</code><span><strong>Proponha aliança.</strong> Ela só vale quando os dois lados aceitam.</span></button>
-              <button class="command copy-button" data-copy="/clan chat &lt;mensagem&gt;"><code>/clan chat &lt;mensagem&gt;</code><span><strong>Converse em privado.</strong> A mensagem também chega ao canal do clã.</span></button>
-              <button class="command copy-button" data-copy="/clan info"><code>/clan info</code><span><strong>Resumo da bandeira.</strong> Membros, claims, cofre, acessos e combate.</span></button>
+            <div class="command-page" id="conflito" role="tabpanel">
+              <button class="command-row copy-button" type="button" data-copy="/clan criar &lt;nome&gt; &lt;tag&gt;"><code>/clan criar</code><span><strong>Erguer bandeira</strong>Cria clã, cargo e espaços privados no Discord.</span><b>↗</b></button>
+              <button class="command-row copy-button" type="button" data-copy="/clan claim"><code>/clan claim</code><span><strong>Reivindicar chão</strong>Adiciona um chunk conectado ao seu clã.</span><b>↗</b></button>
+              <button class="command-row copy-button" type="button" data-copy="/raid declarar"><code>/raid declarar</code><span><strong>Marcar uma raid</strong>Escolha horários; a arena volta ao estado anterior.</span><b>↗</b></button>
             </div>
-            <div class="command-panel" id="raid" role="tabpanel">
-              <div class="raid-explainer"><strong>Como funciona uma invasão?</strong><p>Ela tem horário, participantes e aposta definidos. O atacante tenta controlar o cofre por três minutos; se falhar em uma hora, o defensor vence. A construção é restaurada ao fim.</p></div>
-              <button class="command copy-button" data-copy="/raid declarar &lt;tag&gt; &lt;diamantes&gt; &lt;horário1&gt; &lt;horário2&gt; &lt;horário3&gt;"><code>/raid declarar ...</code><span><strong>Faça o desafio.</strong> Ofereça três janelas entre 24 e 72 horas e aposte de 16 a 64 diamantes.</span></button>
-              <button class="command copy-button" data-copy="/raid agendar &lt;id&gt; &lt;1|2|3&gt;"><code>/raid agendar &lt;id&gt; &lt;1|2|3&gt;</code><span><strong>Escolha a janela.</strong> O defensor confirma um dos três horários.</span></button>
-              <button class="command copy-button" data-copy="/raid status [id]"><code>/raid status [id]</code><span><strong>Acompanhe o conflito.</strong> Mostra estado, início e tempo de captura.</span></button>
-              <button class="command copy-button" data-copy="/raid premio"><code>/raid premio</code><span><strong>Consulte a recompensa.</strong> O valor é creditado direto no cofre vencedor.</span></button>
-            </div>
-            <div class="command-panel" id="plus" role="tabpanel">
-              <div class="raid-explainer"><strong>Vanilla+, não modpack obrigatório.</strong><p>O Nemeton+ usa plugin, datapack e resource pack para adicionar surpresas leves sem expulsar Java vanilla, Lunar ou Bedrock.</p></div>
-              <button class="command copy-button" data-copy="/mods"><code>/mods</code><span><strong>Abra o guia Vanilla+.</strong> Explica minimapa, packs, limitações do cross-play e o conteúdo autoral ativo.</span></button>
-              <button class="command copy-button" data-copy="/mods itens"><code>/mods itens</code><span><strong>Veja receitas e drops.</strong> Mostra essências, armas, armadura e recompensas de boss.</span></button>
-              <button class="command copy-button" data-copy="/mods restaurar"><code>/mods restaurar</code><span><strong>Corrige item antigo.</strong> Reaplica nome, modelo e dados de itens Nemeton+ que voltarem bugados.</span></button>
-              <button class="command copy-button" data-copy="/mapa"><code>/mapa</code><span><strong>Orientação cross-play.</strong> Bedrock usa mapa nativo e menu; Java/Lunar também pode ativar minimap no cliente.</span></button>
-              <button class="command copy-button" data-copy="/mochila"><code>/mochila</code><span><strong>Bolsa pessoal.</strong> Item craftável com 27 espaços, sem precisar instalar modpack pesado.</span></button>
+            <div class="command-page" id="plus" role="tabpanel">
+              <button class="command-row copy-button" type="button" data-copy="/troca &lt;jogador&gt;"><code>/troca</code><span><strong>Troca segura</strong>Os dois lados revisam e confirmam a oferta.</span><b>↗</b></button>
+              <button class="command-row copy-button" type="button" data-copy="/mochila"><code>/mochila</code><span><strong>Inventário extra</strong>Leve uma reserva para suas expedições.</span><b>↗</b></button>
+              <button class="command-row copy-button" type="button" data-copy="/mods itens"><code>/mods itens</code><span><strong>Relíquias autorais</strong>Conheça as essências, corações e receitas do Nemeton+.</span><b>↗</b></button>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="events section" id="eventos">
-        <header class="section-head reveal"><div><p class="kicker">Histórias compartilhadas</p><h2>Os grandes momentos continuam sendo vanilla.</h2></div></header>
-        <div class="event-list">
-          <article class="reveal"><span>🐉</span><div><p>Evento comunitário</p><h3>Ender Dragon</h3></div><small>Expedição anunciada no Discord para a primeira vitória ser da turma.</small></article>
-          <article class="reveal"><span>💀</span><div><p>Caos controlado</p><h3>Wither Boss</h3></div><small>Invocação fora do Nemeton e de claims, com data e equipe combinadas.</small></article>
-          <article class="reveal"><span>⛏</span><div><p>Quem tiver uma ideia</p><h3>Expedições</h3></div><small>Mineração, farms, exploração e construções propostas pela comunidade.</small></article>
-        </div>
-      </section>
-
-      <section class="rules section">
-        <div class="rule-lead reveal"><p class="kicker">O pacto</p><h2>Conflito com regra. Comunidade sem burocracia.</h2></div>
-        <div class="rules-list reveal">
-          <p><span>01</span> Respeite pessoas e o tempo colocado nas construções.</p>
-          <p><span>02</span> Grife e roubo só existem dentro da mecânica oficial de raid.</p>
-          <p><span>03</span> Bugs, duplicação e tentativa de destruir o lobby serão revertidos.</p>
-          <p><span>04</span> Sugestões são votadas no Discord; boas ideias podem render uma lembrança no jogo.</p>
-        </div>
-      </section>
-
-      <section class="final-cta reveal">
-        <img src="/assets/nemeton-emblem.png" alt="" />
-        <div><p class="kicker">A clareira está aberta</p><h2>Entre do seu jeito. O mundo é o mesmo.</h2></div>
-        <div class="final-actions">
-          <a href="https://discord.gg/GdsnyHGXw5" target="_blank" rel="noreferrer">Entrar no Discord</a>
-          <button class="copy-button" data-copy="nemeton.olua.me">Copiar IP Java</button>
-          <button class="copy-button" data-copy="b.nemeton.olua.me:59460">Copiar Bedrock + porta</button>
-        </div>
+      <section class="join-section">
+        <div class="join-copy"><span class="join-mark">N</span><div><h2>A próxima história<br /><em>começa no portão.</em></h2><p>Entre no Discord, vincule sua conta e encontre a clareira. O resto é com você.</p></div></div>
+        <div class="join-actions"><a class="primary-cta" href="https://discord.gg/GdsnyHGXw5" target="_blank" rel="noreferrer"><span>Entrar no Discord</span><b>↗</b></a><a class="text-cta" href="https://nemeton.olua.me/" rel="noreferrer">Voltar à página principal <span>→</span></a></div>
       </section>
     </main>
 
-    <footer>
-      <div><strong>Nemeton</strong><span>Survival comunitário, sem monetização.</span></div>
-      <p>Java: <button class="copy-button" data-copy="nemeton.olua.me">nemeton.olua.me</button> • Bedrock: <button class="copy-button" data-copy="b.nemeton.olua.me:59460">b.nemeton.olua.me:59460</button></p>
-      <p class="privacy">Este site não coleta dados pessoais nem usa cookies de rastreamento.</p>
-    </footer>
-    <div class="toast" role="status" aria-live="polite">Copiado.</div>
-    <script src="/app.js" defer></script>
+    <footer><span>© 2026 Nemeton</span><span>feito para jogar junto · Java + Bedrock</span><a href="https://nemeton.olua.me/">nemeton.olua.me</a></footer>
+    <div class="toast" role="status" aria-live="polite"></div>
+
+    <svg class="svg-sprite" aria-hidden="true" focusable="false"><symbol id="icon-discord" viewBox="0 0 24 24"><path fill="currentColor" d="M19.5 5.1A16.2 16.2 0 0 0 15.7 4l-.5 1a14.7 14.7 0 0 0-6.4 0l-.5-1A16.2 16.2 0 0 0 4.5 5.1C2.1 8.7 1.5 12.2 1.8 15.7a16.4 16.4 0 0 0 4.7 2.4l1.1-1.5a10.8 10.8 0 0 1-1.7-.8l.4-.3c3.3 1.5 6.9 1.5 10.1 0l.4.3c-.5.3-1.1.6-1.7.8l1.1 1.5a16.4 16.4 0 0 0 4.7-2.4c.4-4-.6-7.5-1.9-10.6ZM8.5 14.1c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Zm7 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2Z"/></symbol><symbol id="icon-shield" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 9.6 8 11 4.6-1.4 8-6 8-11V5l-8-3Zm0 3.1 5 1.9v4c0 3.6-2.3 7.1-5 8.3-2.7-1.2-5-4.7-5-8.3V7l5-1.9Zm-1 8.8-2-2-1.4 1.4L11 17.7l5.4-5.4-1.4-1.4L11 13.9Z"/></symbol></svg>
+    <script src="/page-teste/script.js" defer></script>
   </body>
 </html>
