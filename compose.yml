@@ -23,6 +23,9 @@ services:
 
   minecraft:
     image: ${MC_IMAGE:-itzg/minecraft-server:java25}
+    # Keep the server process aligned with the mounted data owner. This prevents
+    # freshly generated worlds/session.lock from becoming root-owned on the VPS.
+    user: "1000:1000"
     restart: unless-stopped
     depends_on:
       database:
