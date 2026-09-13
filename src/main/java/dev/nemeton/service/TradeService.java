@@ -24,6 +24,7 @@ public final class TradeService implements Listener, TabExecutor {
     private static final Set<Integer> OWN_SLOT_SET = Arrays.stream(OWN_SLOTS).collect(HashSet::new, Set::add, Set::addAll);
     private static final int ACCEPT_SLOT = 49;
     private static final int CANCEL_SLOT = 53;
+    private static final int[] INVITE_SLOTS = {10, 11, 12, 13, 14, 15, 16};
 
     private final JavaPlugin plugin;
     private final Map<UUID, Invite> invites = new HashMap<>();
@@ -71,14 +72,18 @@ public final class TradeService implements Listener, TabExecutor {
 
     @EventHandler(ignoreCancelled = true)
     public void onClick(InventoryClickEvent event) {
-        if (!(event.getInventory().getHolder() instanceof TradeHolder holder)) return;
+        if (event.getView().getTopInventory().getHolder() instanceof InviteHolder inviteHolder) {
+            handleInviteClick(event, inviteHolder);
+            return;
+        }
+        if (!(event.getView().getTopInventory().getHolder() instanceof TradeHolder holder)) return;
         TradeSession session = sessionsById.get(holder.sessionId());
         Player player = (Player) event.getWhoClicked();
         if (session == null) {
             event.setCancelled(true);
             return;
         }
-        if (session.bedrockSafe) {
+        if (session.bedrockSafe && BedrockForms.isBedrock(player)) {
             event.setCancelled(true);
             if (!openBedrockTradeMenu(player, session)) {
                 player.sendMessage("§eEsta troca envolve Bedrock. Use §f/troca abrir§e para ver o painel seguro.");
@@ -94,10 +99,11 @@ public final class TradeService implements Listener, TabExecutor {
         if (raw >= event.getView().getTopInventory().getSize()) return;
         if (raw == ACCEPT_SLOT) {
             event.setCancelled(true);
-            readOffer(session, player.getUniqueId(), event.getInventory());
+            readOffer(session, player.getUniqueId(), event.getView().getTopInventory());
             session.setAccepted(player.getUniqueId(), true);
             sync(session);
             if (session.leftAccepted && session.rightAccepted) complete(session);
+            else refreshBedrockParticipants(session);
             return;
         }
         if (raw == CANCEL_SLOT) {
@@ -112,20 +118,38 @@ public final class TradeService implements Listener, TabExecutor {
         session.leftAccepted = false;
         session.rightAccepted = false;
         Bukkit.getScheduler().runTask(plugin, () -> {
-            readOffer(session, player.getUniqueId(), event.getInventory());
+            readOffer(session, player.getUniqueId(), event.getView().getTopInventory());
             sync(session);
+            refreshBedrockParticipants(session);
         });
+    }
+
+    private void handleInviteClick(InventoryClickEvent event, InviteHolder holder) {
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        int raw = event.getRawSlot();
+        if (raw >= event.getView().getTopInventory().getSize()) return;
+        UUID targetId = holder.targets().get(raw);
+        if (targetId == null) return;
+        Player target = Bukkit.getPlayer(targetId);
+        if (target == null || !target.isOnline()) {
+            player.sendMessage("§cEsse jogador saiu do servidor.");
+            return;
+        }
+        player.closeInventory();
+        try { invite(player, target.getName()); }
+        catch (IllegalArgumentException exception) { player.sendMessage("§c" + exception.getMessage()); }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onDrag(InventoryDragEvent event) {
-        if (!(event.getInventory().getHolder() instanceof TradeHolder holder)) return;
+        if (!(event.getView().getTopInventory().getHolder() instanceof TradeHolder holder)) return;
         TradeSession session = sessionsById.get(holder.sessionId());
         if (session == null) {
             event.setCancelled(true);
             return;
         }
-        if (session.bedrockSafe) {
+        if (session.bedrockSafe && BedrockForms.isBedrock((Player) event.getWhoClicked())) {
             event.setCancelled(true);
             return;
         }
@@ -140,8 +164,9 @@ public final class TradeService implements Listener, TabExecutor {
         session.leftAccepted = false;
         session.rightAccepted = false;
         Bukkit.getScheduler().runTask(plugin, () -> {
-            readOffer(session, player.getUniqueId(), event.getInventory());
+            readOffer(session, player.getUniqueId(), event.getView().getTopInventory());
             sync(session);
+            refreshBedrockParticipants(session);
         });
     }
 
@@ -198,14 +223,47 @@ public final class TradeService implements Listener, TabExecutor {
         TradeSession session = sessionsByPlayer.get(player.getUniqueId());
         if (session == null) {
             if (openBedrockInviteMenu(player)) return;
-            usage(player);
+            openJavaInviteMenu(player);
             return;
         }
-        if (session.bedrockSafe) {
+        if (BedrockForms.isBedrock(player) && session.bedrockSafe) {
             showStatus(player);
             return;
         }
         open(player, session);
+    }
+
+    private void openJavaInviteMenu(Player player) {
+        List<Player> players = Bukkit.getOnlinePlayers().stream()
+                .filter(other -> !other.equals(player))
+                .filter(other -> !sessionsByPlayer.containsKey(other.getUniqueId()))
+                .sorted(Comparator.comparing(Player::getName, String.CASE_INSENSITIVE_ORDER))
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        if (players.isEmpty()) {
+            usage(player);
+            return;
+        }
+        Inventory inventory = Bukkit.createInventory(new InviteHolder(new HashMap<>()), 27, Component.text("Troca • escolher jogador"));
+        InviteHolder holder = (InviteHolder) inventory.getHolder();
+        ItemStack filler = item(Material.GRAY_STAINED_GLASS_PANE, "§8");
+        for (int i = 0; i < inventory.getSize(); i++) inventory.setItem(i, filler);
+        inventory.setItem(4, item(Material.EMERALD, "§aIniciar troca", "§7Clique em um jogador online."));
+        int shown = Math.min(players.size(), INVITE_SLOTS.length);
+        for (int i = 0; i < shown; i++) {
+            Player target = players.get(i);
+            int slot = INVITE_SLOTS[i];
+            holder.targets().put(slot, target.getUniqueId());
+            inventory.setItem(slot, item(Material.PLAYER_HEAD, "§e" + target.getName(),
+                    isBedrock(target) ? "§bBedrock: usará menu nativo." : "§aJava: usará inventário.",
+                    "§7Clique para convidar."));
+        }
+        if (players.size() > INVITE_SLOTS.length) {
+            inventory.setItem(22, item(Material.PAPER, "§eMais jogadores online",
+                    "§7Use §f/troca <nome>§7 se ele não aparecer aqui."));
+        } else {
+            inventory.setItem(22, item(Material.BARRIER, "§cFechar"));
+        }
+        player.openInventory(inventory);
     }
 
     private boolean openBedrockInviteMenu(Player player) {
@@ -239,7 +297,7 @@ public final class TradeService implements Listener, TabExecutor {
     }
 
     private void open(Player player, TradeSession session) {
-        if (session.bedrockSafe) {
+        if (session.bedrockSafe && BedrockForms.isBedrock(player)) {
             showStatus(player);
             return;
         }
@@ -437,7 +495,7 @@ public final class TradeService implements Listener, TabExecutor {
             complete(session);
             return;
         }
-        refreshSafe(session);
+        refreshInterfaces(session, player.getUniqueId());
     }
 
     private void showStatus(Player player) {
@@ -448,6 +506,10 @@ public final class TradeService implements Listener, TabExecutor {
         }
         Player other = Bukkit.getPlayer(session.other(player.getUniqueId()));
         if (session.bedrockSafe && openBedrockTradeMenu(player, session)) {
+            return;
+        }
+        if (session.bedrockSafe && !BedrockForms.isBedrock(player)) {
+            open(player, session);
             return;
         }
         player.sendMessage("§8§m                                                ");
@@ -486,8 +548,37 @@ public final class TradeService implements Listener, TabExecutor {
     private void refreshSafe(TradeSession session) {
         Player left = Bukkit.getPlayer(session.left);
         Player right = Bukkit.getPlayer(session.right);
-        if (left != null) showStatus(left);
-        if (right != null) showStatus(right);
+        if (left != null) refreshPlayerInterface(left, session, null);
+        if (right != null) refreshPlayerInterface(right, session, null);
+    }
+
+    private void refreshInterfaces(TradeSession session, UUID source) {
+        Player left = Bukkit.getPlayer(session.left);
+        Player right = Bukkit.getPlayer(session.right);
+        if (left != null) refreshPlayerInterface(left, session, source);
+        if (right != null) refreshPlayerInterface(right, session, source);
+    }
+
+    private void refreshBedrockParticipants(TradeSession session) {
+        Player left = Bukkit.getPlayer(session.left);
+        Player right = Bukkit.getPlayer(session.right);
+        if (left != null && BedrockForms.isBedrock(left)) showStatus(left);
+        if (right != null && BedrockForms.isBedrock(right)) showStatus(right);
+    }
+
+    private void refreshPlayerInterface(Player player, TradeSession session, UUID source) {
+        if (BedrockForms.isBedrock(player) && session.bedrockSafe) {
+            showStatus(player);
+            return;
+        }
+        Inventory inventory = session.openInventories.get(player.getUniqueId());
+        if (inventory != null) {
+            render(session, player.getUniqueId(), inventory);
+            return;
+        }
+        if (source != null && !source.equals(player.getUniqueId())) {
+            player.sendActionBar(Component.text("Troca atualizada. Use /troca para abrir a interface."));
+        }
     }
 
     private void handleBedrockTradeButton(Player player, int index) {
@@ -598,6 +689,9 @@ public final class TradeService implements Listener, TabExecutor {
 
     private record Invite(UUID source, Instant expires) {}
     private record TradeHolder(UUID sessionId, UUID viewer) implements InventoryHolder {
+        @Override public Inventory getInventory() { return null; }
+    }
+    private record InviteHolder(Map<Integer, UUID> targets) implements InventoryHolder {
         @Override public Inventory getInventory() { return null; }
     }
 

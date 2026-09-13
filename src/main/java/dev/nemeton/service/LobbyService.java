@@ -62,6 +62,10 @@ public final class LobbyService implements Listener, CommandExecutor {
     private static final int TREE_COPY_ABOVE = 78;
     private static final int NEMETON_TREE_HEIGHT = 62;
     private static final int NEMETON_TREE_BASE_RADIUS = 10;
+    private static final int STATION_CLEAR_RADIUS = 6;
+    private static final int[][] NPC_STATIONS = {
+            {-10, 14}, {14, 8}, {-14, -8}, {8, -14}, {18, -18}
+    };
     private static final String CITIZENS_ROLE = "nemeton-role";
 
     private record TreeBlock(int dx, int dy, int dz, BlockData data) { }
@@ -844,14 +848,15 @@ public final class LobbyService implements Listener, CommandExecutor {
                 int pz = z + (int) Math.round(Math.cos(currentAngle) * lateral);
                 int py = plannedSurfaceY(world, px, pz);
                 int fx = px, fy = py, fz = pz;
+                boolean stationFloor = isNpcStationFootprint(px, pz);
                 changes.add(() -> set(world, fx, fy, fz,
                         Math.floorMod(fx * 11 + fz * 5, 6) == 0 ? Material.ROOTED_DIRT : Material.MOSS_BLOCK));
-                if (step < length - 2 && Math.abs(lateral) <= Math.max(0, thickness - 1)) {
+                if (!stationFloor && step < Math.min(length - 2, 21) && Math.abs(lateral) <= Math.max(0, thickness - 1)) {
                     changes.add(log(world, px, py + 1, pz,
                             Math.floorMod(step + lateral, 5) == 0 ? Material.STRIPPED_DARK_OAK_LOG : Material.DARK_OAK_LOG,
                             axis));
                 }
-                if (step < length / 2 && thickness >= 2 && lateral == 0 && step % 4 == 0) {
+                if (!stationFloor && step < 14 && thickness >= 2 && lateral == 0 && step % 4 == 0) {
                     changes.add(log(world, px, py + 2, pz, Material.SPRUCE_LOG, axis));
                 }
             }
@@ -1061,6 +1066,13 @@ public final class LobbyService implements Listener, CommandExecutor {
                 double distance = Math.hypot(x - cx, z - cz);
                 if (distance > 5.2) continue;
                 int fx = x, fz = z, fy = plannedSurfaceY(world, x, z);
+                for (int clearY = fy + 1; clearY <= fy + 8; clearY++) {
+                    int cy = clearY;
+                    changes.add(() -> {
+                        Block block = world.getBlockAt(fx, cy, fz);
+                        if (shouldClearLobbyDecoration(block.getType())) block.setType(Material.AIR, false);
+                    });
+                }
                 Material floor = distance > 4.1 ? Material.SPRUCE_PLANKS
                         : Math.floorMod(x * 7 + z * 5, 7) == 0 ? Material.MOSSY_COBBLESTONE
                         : Math.floorMod(x + z, 2) == 0 ? Material.PACKED_MUD : Material.MOSS_BLOCK;
@@ -1426,6 +1438,15 @@ public final class LobbyService implements Listener, CommandExecutor {
     private boolean shouldClearLobbySculpture(Material material) {
         if (material.isAir() || material == Material.BEDROCK) return false;
         return true;
+    }
+
+    private boolean isNpcStationFootprint(int x, int z) {
+        int dx = x - blockCenterX();
+        int dz = z - blockCenterZ();
+        for (int[] station : NPC_STATIONS) {
+            if (Math.hypot(dx - station[0], dz - station[1]) <= STATION_CLEAR_RADIUS) return true;
+        }
+        return false;
     }
 
     private boolean shouldClearLobbyDecoration(Material material) {

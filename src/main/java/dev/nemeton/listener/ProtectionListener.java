@@ -97,9 +97,29 @@ public final class ProtectionListener implements Listener {
     }
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageByEntityEvent event) {
-        if (event.getEntity() instanceof Player victim && event.getDamager() instanceof Player attacker) {
-            ChunkPos chunk = ChunkPos.of(victim.getChunk()); Optional<Raid> raid = state.activeRaidAt(chunk);
-            if (raid.isPresent() && (!raids.participant(raid.get(), victim.getUniqueId()) || !raids.participant(raid.get(), attacker.getUniqueId()))) event.setCancelled(true);
+        if (event.getEntity() instanceof Player victim) {
+            Player attacker = playerDamager(event);
+            if (attacker == null) return;
+            ChunkPos chunk = ChunkPos.of(victim.getChunk());
+            Optional<Raid> raid = state.activeRaidAt(chunk);
+            if (raid.isPresent()) {
+                Raid.Side victimSide = raid.get().participants().get(victim.getUniqueId());
+                Raid.Side attackerSide = raid.get().participants().get(attacker.getUniqueId());
+                if (victimSide == null || attackerSide == null || victimSide == attackerSide) {
+                    event.setCancelled(true);
+                    deny(attacker);
+                }
+                return;
+            }
+            if (state.sanctuaryOwner(chunk).isPresent()) {
+                event.setCancelled(true);
+                attacker.sendActionBar(net.kyori.adventure.text.Component.text("Santuários são zonas seguras contra PvP."));
+                return;
+            }
+            if (state.clanAt(chunk).isPresent()) {
+                event.setCancelled(true);
+                attacker.sendActionBar(net.kyori.adventure.text.Component.text("PvP em território de clã só abre durante raid ativa."));
+            }
         } else if (!(event.getEntity() instanceof Monster)) event.setCancelled(state.activeRaidAt(ChunkPos.of(event.getEntity().getChunk())).isPresent());
     }
     @EventHandler public void onWitherSpawn(EntitySpawnEvent event) { if (event.getEntity() instanceof Wither && (claims.isHub(event.getLocation()) || state.clanAt(ChunkPos.of(event.getLocation().getChunk())).isPresent() || state.sanctuaryOwner(ChunkPos.of(event.getLocation().getChunk())).isPresent())) event.setCancelled(true); }
@@ -130,5 +150,10 @@ public final class ProtectionListener implements Listener {
         });
     }
     private void deny(Player player) { player.sendActionBar(net.kyori.adventure.text.Component.text("Este território está protegido.")); }
+    private Player playerDamager(EntityDamageByEntityEvent event) {
+        if (event.getDamager() instanceof Player player) return player;
+        if (event.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof Player player) return player;
+        return null;
+    }
     private boolean canBuildHub(Player player) { return player.hasPermission("nemeton.builder"); }
 }
