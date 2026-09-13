@@ -1,0 +1,5 @@
+--- data/minecraft/plugins/DiscordSRV/messages.yml
++++ data/minecraft/plugins/DiscordSRV/messages.yml
+@@ -435,1 +435,1 @@
+-DiscordAccountLinked: "✅ Conta vinculada! Seu Discord agora está conectado ao Minecraft de **%name%**. Pode entrar no Nemeton. 🌿"
++DiscordAccountLinked: "✅ Conta vinculada! Seu Discord agora está conectado ao Minecraft de **%name%**. Pode entrar no Nemeton. 🌿\n\n**Próximos passos**\n• `/menu` abre o painel; `/guia` mostra o manual; `/kit` prepara sua primeira noite.\n• `/santuario marcar` protege uma base tranquila.\n• `/clan criar <nome> <tag>` ergue uma bandeira e aceita o risco de raids.\n• `/troca <jogador>` abre uma negociação segura.\n\n**Regras rápidas**\n• Sem grief, roubo, trapaça ou assédio.\n• Sem clã: seu santuário não é alvo de invasão.\n• Com clã: conflitos só pelas raids oficiais e agendadas.\n\n📘 Guia completo: https://nemeton.olua.me/"

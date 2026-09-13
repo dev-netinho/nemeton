@@ -26,7 +26,7 @@
 -DiscordLinkedAccountRequired: "You attempted to say the following message to the game chat but this server requires that you have your Minecraft account linked to your Discord account. Link it in-game by typing `/discord link`. \n```%message%```"
 -DiscordLinkedAccountCheckFailed: "Unable to check if your account is linked, please try again later"
 +InvalidCode: "🔢 Esse código precisa ter exatamente 4 números. Confira e envie novamente — sem espaços ou texto extra."
-+DiscordAccountLinked: "✅ Conta vinculada! Seu Discord agora está conectado ao Minecraft de **%name%**. Pode entrar no Nemeton. 🌿"
++DiscordAccountLinked: "✅ Conta vinculada! Seu Discord agora está conectado ao Minecraft de **%name%**. Pode entrar no Nemeton. 🌿\n\n**Próximos passos**\n• `/menu` abre o painel; `/guia` mostra o manual; `/kit` prepara sua primeira noite.\n• `/santuario marcar` protege uma base tranquila.\n• `/clan criar <nome> <tag>` ergue uma bandeira e aceita o risco de raids.\n• `/troca <jogador>` abre uma negociação segura.\n\n**Regras rápidas**\n• Sem grief, roubo, trapaça ou assédio.\n• Sem clã: seu santuário não é alvo de invasão.\n• Com clã: conflitos só pelas raids oficiais e agendadas.\n\n📘 Guia completo: https://nemeton.olua.me/"
 +DiscordAccountAlreadyLinked: "ℹ️ Esta conta já está vinculada ao Minecraft de **%username%**. Se precisar trocar, use `/discord unlink` no jogo."
 +DiscordLinkedAccountRequired: "🔒 Para falar no chat do Minecraft, primeiro vincule sua conta.\n\nNo jogo, use `/discord link` e envie nesta DM somente o código de 4 números.\n\nSua mensagem não foi publicada:\n> %message%"
 +DiscordLinkedAccountCheckFailed: "⚠️ Não consegui conferir seu vínculo agora. Tente novamente em alguns segundos."
