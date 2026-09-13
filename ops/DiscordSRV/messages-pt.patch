@@ -1,0 +1,51 @@
+--- data/minecraft/plugins/DiscordSRV/messages.yml
++++ data/minecraft/plugins/DiscordSRV/messages.yml
+@@ -379,8 +379,8 @@
+ #
+-DiscordCommandFormat: "&bJoin us on Discord at {INVITE}&b. For command help, do \"/discord ?\""
++DiscordCommandFormat: "&b🌿 Entre no Discord: {INVITE}&b. Para ajuda, use &f/discord ?&b."
+ 
+ # No permission message
+-NoPermissionMessage: "&cYou do not have permission to perform this command."
++NoPermissionMessage: "&c✗ Você não tem permissão para executar este comando."
+ 
+ # Unknown command message
+-UnknownCommandMessage: "&bThat command doesn't exist!"
++UnknownCommandMessage: "&b? Esse comando não existe. Use &f/discord ?&b para ver a ajuda."
+@@ -391,3 +391,3 @@
+ #
+-DiscordChatChannelServerStartupMessage: ":white_check_mark: **Server has started**"
+-DiscordChatChannelServerShutdownMessage: ":octagonal_sign: **Server has stopped**"
++DiscordChatChannelServerStartupMessage: ":white_check_mark: **Nemeton está online** · a clareira foi acesa 🌿"
++DiscordChatChannelServerShutdownMessage: ":octagonal_sign: **Nemeton está offline** · até a próxima aventura"
+@@ -433,16 +433,16 @@
+ UnknownCode: "I don't know of such a code, try again."
+-InvalidCode: "Are you sure that's your code? Link codes are 4 numbers long."
+-DiscordAccountLinked: "Your Discord account has been linked to %name% (%uuid%)"
+-DiscordAccountAlreadyLinked: "You are already linked to %username% (%uuid%)"
+-DiscordLinkedAccountRequired: "You attempted to say the following message to the game chat but this server requires that you have your Minecraft account linked to your Discord account. Link it in-game by typing `/discord link`. \n```%message%```"
+-DiscordLinkedAccountCheckFailed: "Unable to check if your account is linked, please try again later"
++InvalidCode: "🔢 Esse código precisa ter exatamente 4 números. Confira e envie novamente — sem espaços ou texto extra."
++DiscordAccountLinked: "✅ Conta vinculada! Seu Discord agora está conectado ao Minecraft de **%name%**. Pode entrar no Nemeton. 🌿"
++DiscordAccountAlreadyLinked: "ℹ️ Esta conta já está vinculada ao Minecraft de **%username%**. Se precisar trocar, use `/discord unlink` no jogo."
++DiscordLinkedAccountRequired: "🔒 Para falar no chat do Minecraft, primeiro vincule sua conta.\n\nNo jogo, use `/discord link` e envie nesta DM somente o código de 4 números.\n\nSua mensagem não foi publicada:\n> %message%"
++DiscordLinkedAccountCheckFailed: "⚠️ Não consegui conferir seu vínculo agora. Tente novamente em alguns segundos."
+ # Minecraft
+-CodeGenerated: "Your link code is %code%. PM the bot on Discord (%botname%) containing just this code as the message to link your accounts."
+-ClickToCopyCode: "Click to copy"
+-MinecraftAccountLinked: "&bYour UUID has been linked to Discord user %username% (%id%)"
+-MinecraftAccountAlreadyLinked: "&bYour Minecraft account is already associated with a Discord account. Should you have permission to, you can unlink your account with /discord unlink."
+-LinkedCommandSuccess: "&bYour Minecraft account is associated with %name%."
+-UnlinkCommandSuccess: "&bYour Minecraft account is no longer associated with %name%."
+-MinecraftNoLinkedAccount: "&cYour Minecraft account isn't associated with a Discord account."
+-LinkingError: "&cCurrently unable to link accounts due to an internal error. Contact your server administration team."
+-MinecraftNobodyFound: "&cNobody found with Discord ID/Discord name/Minecraft name/Minecraft UUID matching \"%target%\" to look up."
++CodeGenerated: "&a🌿 Código de vínculo: &f%code%&a.\n&7Envie somente esses 4 números por DM para &f%botname%&7 no Discord.\n&7Depois, volte ao jogo quando aparecer a confirmação."
++ClickToCopyCode: "&e📋 Clique para copiar"
++MinecraftAccountLinked: "&a✓ Discord vinculado com sucesso a &f%username%&a."
++MinecraftAccountAlreadyLinked: "&eℹ Sua conta já está vinculada ao Discord. Use &f/discord unlink&e para remover o vínculo."
++LinkedCommandSuccess: "&a✓ Sua conta Minecraft está vinculada ao Discord de &f%name%&a."
++UnlinkCommandSuccess: "&e✓ Vínculo removido. Sua conta não está mais associada a &f%name%&e."
++MinecraftNoLinkedAccount: "&c✗ Sua conta Minecraft ainda não está vinculada ao Discord. Use &f/discord link&c."
++LinkingError: "&c⚠ Não foi possível concluir o vínculo agora. Tente novamente; se persistir, avise a administração."
++MinecraftNobodyFound: "&cNenhum usuário encontrado para \"%target%\". Confira o nome ou ID e tente novamente."
