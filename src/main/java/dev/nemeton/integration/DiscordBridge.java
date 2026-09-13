@@ -112,6 +112,8 @@ public final class DiscordBridge {
         }).orElseGet(() -> CompletableFuture.completedFuture(null));
     }
     public void alert(String message) { if (enabled() && !config.alertsChannelId().isBlank()) postMessage(config.alertsChannelId(), message); }
+    public void leadersMessage(String message) { if (enabled() && !config.leadersChannelId().isBlank()) postMessage(config.leadersChannelId(), message); }
+    public void recruitmentMessage(String message) { if (enabled() && !config.recruitmentChannelId().isBlank()) postMessage(config.recruitmentChannelId(), message); }
     public void clanMessage(Clan clan, String message) { if (enabled() && clan.discordTextId() != null) postMessage(clan.discordTextId(), message); }
 
     public void startDirectMessageForwarder(Plugin plugin) {
@@ -194,7 +196,13 @@ public final class DiscordBridge {
         }).exceptionally(error -> null).whenComplete((ignored, error) -> suggestionsPolling.set(false));
     }
 
-    private void postMessage(String channel, String message) { post("/channels/" + channel + "/messages", Map.of("content", message.substring(0, Math.min(1900, message.length())))); }
+    private void postMessage(String channel, String message) {
+        String content = sanitizeDiscordText(message);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("content", truncate(content, 1900));
+        body.put("allowed_mentions", Map.of("parse", List.of()));
+        post("/channels/" + channel + "/messages", body).exceptionally(error -> null);
+    }
     private void postDirectMessageLog(JsonNode message) {
         if (!enabled() || config.dmLogChannelId().isBlank()) return;
         JsonNode author = message.path("author");

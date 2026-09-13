@@ -46,7 +46,10 @@ public final class RaidService {
         Raid raid = new Raid(UUID.randomUUID(), attacker.id(), defender.id(), stake, slots, now.plus(settings.war().choiceWindow()));
         repository.reserveRaid(raid); attacker.withdraw(stake); defender.withdraw(stake); state.addRaid(raid);
         discord.alert("⚔️ **" + attacker.tag() + "** declarou uma raid contra **" + defender.tag() + "**. ID `" + shortId(raid.id()) + "`.");
-        discord.clanMessage(defender, raidScheduleMessage(raid)); return raid;
+        discord.leadersMessage("⚔️ **Raid declarada:** **" + attacker.tag() + "** → **" + defender.tag() + "**, aposta de **" + stake + " diamantes**. ID `" + shortId(raid.id()) + "`.");
+        discord.clanMessage(attacker, "⚔️ Raid declarada contra **" + defender.tag() + "**. Aposta reservada: **" + stake + " diamantes**.");
+        discord.clanMessage(defender, "🚨 **" + attacker.tag() + "** declarou raid contra vocês.\n" + raidScheduleMessage(raid));
+        return raid;
     }
 
     public void schedule(Raid raid, Clan defender, UUID actor, int slot) {
@@ -54,11 +57,14 @@ public final class RaidService {
         if (raid.state() != RaidState.DECLARED || raid.choiceDeadline().isBefore(Instant.now())) throw new IllegalArgumentException("A janela de escolha terminou.");
         raid.schedule(slot, raid.slots().get(slot - 1).plus(settings.war().duration())); repository.saveRaid(raid);
         discord.alert("🗓️ Raid `" + shortId(raid.id()) + "` agendada para <t:" + raid.startsAt().getEpochSecond() + ":F>.");
+        notifyRaidClans(raid, "🗓️ Raid `" + shortId(raid.id()) + "` agendada para <t:" + raid.startsAt().getEpochSecond() + ":F>.");
+        discord.leadersMessage("🗓️ Raid `" + shortId(raid.id()) + "` confirmada no horário " + slot + ": <t:" + raid.startsAt().getEpochSecond() + ":F>.");
     }
 
     public void armCapture(UUID raidId, UUID player) {
         Raid raid = state.raid(raidId).orElseThrow(); if (raid.state() != RaidState.ACTIVE || raid.participants().get(player) != Raid.Side.ATTACKER) throw new IllegalArgumentException("Você não é atacante nessa raid.");
         captureArmed.add(raidId); discord.alert("🔥 O cofre da raid `" + shortId(raidId) + "` está sendo capturado!");
+        notifyRaidClans(raid, "🔥 O cofre está sendo capturado. Defensores precisam contestar a área.");
     }
 
     public void tick() {
@@ -72,17 +78,23 @@ public final class RaidService {
         }
     }
 
-    private void scheduleDefault(Raid raid) { raid.schedule(1, raid.slots().getFirst().plus(settings.war().duration())); repository.saveRaid(raid); }
+    private void scheduleDefault(Raid raid) {
+        raid.schedule(1, raid.slots().getFirst().plus(settings.war().duration())); repository.saveRaid(raid);
+        String message = "🗓️ Raid `" + shortId(raid.id()) + "` caiu no primeiro horário por falta de escolha: <t:" + raid.startsAt().getEpochSecond() + ":F>.";
+        discord.alert(message); notifyRaidClans(raid, message); discord.leadersMessage(message);
+    }
 
     private void start(Raid raid) {
         Clan attacker = state.clan(raid.attackerId()).orElseThrow(); Clan defender = state.clan(raid.defenderId()).orElseThrow();
         List<UUID> defenders = online(defender, settings.war().maximumTeam());
         List<UUID> attackers = online(attacker, Math.min(settings.war().maximumTeam(), defenders.size() + 1));
-        if (attackers.size() < settings.war().minimumTeam()) { repository.cancelRaidWithPayouts(raid, 0, raid.stake() * 2); defender.deposit(raid.stake() * 2); raid.cancel(); discord.alert("Raid `" + shortId(raid.id()) + "` cancelada: atacantes ausentes; aposta entregue ao defensor."); return; }
-        if (defenders.size() < settings.war().minimumTeam()) { int penalty = Math.max(1, raid.stake() / 4); repository.cancelRaidWithPayouts(raid, raid.stake() + penalty, raid.stake() - penalty); attacker.deposit(raid.stake() + penalty); defender.deposit(raid.stake() - penalty); raid.cancel(); discord.alert("Raid `" + shortId(raid.id()) + "` encerrada: defensores insuficientes."); return; }
+        if (attackers.size() < settings.war().minimumTeam()) { repository.cancelRaidWithPayouts(raid, 0, raid.stake() * 2); defender.deposit(raid.stake() * 2); raid.cancel(); String message = "Raid `" + shortId(raid.id()) + "` cancelada: atacantes ausentes; aposta entregue ao defensor."; discord.alert(message); notifyRaidClans(raid, message); return; }
+        if (defenders.size() < settings.war().minimumTeam()) { int penalty = Math.max(1, raid.stake() / 4); repository.cancelRaidWithPayouts(raid, raid.stake() + penalty, raid.stake() - penalty); attacker.deposit(raid.stake() + penalty); defender.deposit(raid.stake() - penalty); raid.cancel(); String message = "Raid `" + shortId(raid.id()) + "` encerrada: defensores insuficientes."; discord.alert(message); notifyRaidClans(raid, message); return; }
         raid.start(attackers, defenders); repository.saveRaid(raid);
         List<UUID> all = new ArrayList<>(attackers); all.addAll(defenders); regions.createRaidOverlay(raid.id(), defender.claims(), all);
         teleportTeams(raid, attacker, defender, attackers, defenders); discord.alert("⚔️ Raid `" + shortId(raid.id()) + "` iniciada: " + attackers.size() + "×" + defenders.size() + ".");
+        notifyRaidClans(raid, "⚔️ Raid `" + shortId(raid.id()) + "` iniciada: **" + attackers.size() + "×" + defenders.size() + "**. Boa sorte.");
+        discord.leadersMessage("⚔️ Raid `" + shortId(raid.id()) + "` em andamento: **" + attacker.tag() + "** contra **" + defender.tag() + "**.");
     }
 
     private void tickActive(Raid raid, Instant now) {
@@ -125,6 +137,8 @@ public final class RaidService {
         restore(raid, () -> {
             Clan winner = state.clan(winnerId).orElseThrow(); repository.settleRaid(raid, winnerId, raid.stake() * 2); winner.deposit(raid.stake() * 2); raid.complete(winnerId);
             discord.alert("🏆 **" + winner.tag() + "** venceu a raid `" + shortId(raid.id()) + "` (" + reason + "). Território restaurado.");
+            notifyRaidClans(raid, "🏆 **" + winner.tag() + "** venceu a raid `" + shortId(raid.id()) + "` (" + reason + "). A restauração do território foi concluída.");
+            discord.leadersMessage("🏆 Resultado da raid `" + shortId(raid.id()) + "`: **" + winner.tag() + "** venceu por **" + reason + "**.");
         });
     }
 
@@ -154,6 +168,10 @@ public final class RaidService {
     }
 
     private List<UUID> online(Clan clan, int limit) { return clan.members().keySet().stream().filter(id -> Bukkit.getPlayer(id) != null).limit(limit).toList(); }
+    private void notifyRaidClans(Raid raid, String message) {
+        state.clan(raid.attackerId()).ifPresent(clan -> discord.clanMessage(clan, message));
+        state.clan(raid.defenderId()).ifPresent(clan -> discord.clanMessage(clan, message));
+    }
     private void teleportTeams(Raid raid, Clan attacker, Clan defender, List<UUID> attackers, List<UUID> defenders) {
         Clan.BlockPoint point = defender.coffer(); World world = Bukkit.getWorld(point.world()); if (world == null) return;
         Location defense = new Location(world, point.x() + .5, point.y() + 1, point.z() + .5); Location attack = world.getHighestBlockAt(point.x() + 64, point.z()).getLocation().add(.5, 1, .5);

@@ -5,6 +5,7 @@ import dev.nemeton.domain.*;
 import dev.nemeton.integration.*;
 import dev.nemeton.persistence.NemetonRepository;
 import dev.nemeton.state.ServerState;
+import org.bukkit.Bukkit;
 
 import java.time.Instant;
 import java.util.*;
@@ -26,33 +27,59 @@ public final class ClanService {
         if (!name.matches("[\\p{L}0-9 _-]{3,32}") || !tag.matches("[A-Za-z0-9]{2,8}")) throw new IllegalArgumentException("Nome ou tag inválidos.");
         if (state.clanByTag(tag).isPresent()) throw new IllegalArgumentException("Essa tag já existe.");
         Clan clan = new Clan(UUID.randomUUID(), name, tag, owner); repository.insertClan(clan); state.addClan(clan);
+        String ownerName = playerName(owner);
         discord.createClanResources(clan).whenComplete((resources, error) -> {
-            if (error == null && resources.roleId() != null) { clan.setDiscord(resources.roleId(), resources.textId(), resources.voiceId()); repository.saveClanRuntime(clan); discord.syncClanIdentity(owner, resources.roleId(), ClanRole.LEADER); }
+            if (error != null) {
+                discord.alert("⚠️ Falha ao criar recursos do Discord para o clã **" + clan.tag() + "**. A administração precisa conferir permissões do bot.");
+                return;
+            }
+            if (resources.roleId() != null) {
+                clan.setDiscord(resources.roleId(), resources.textId(), resources.voiceId()); repository.saveClanRuntime(clan); discord.syncClanIdentity(owner, resources.roleId(), ClanRole.LEADER);
+                discord.clanMessage(clan, "🌳 **Quartel do clã " + clan.name() + " [" + clan.tag() + "] criado.**\n"
+                        + "👑 Líder: **" + ownerName + "**\n"
+                        + "💬 Mensagens daqui chegam ao `/clan chat` no Minecraft.\n"
+                        + "🛡️ Lembrete: todo clã aceita guerra; bases pacíficas devem usar **santuário pessoal**.");
+                discord.recruitmentMessage("🏰 **Novo clã no Nemeton:** **" + clan.name() + "** [`" + clan.tag() + "`], liderado por **" + ownerName + "**.\n"
+                        + "Quem quiser jogar em grupo pode pedir convite no Discord ou no Minecraft.");
+                discord.leadersMessage("👑 **" + ownerName + "** entrou no conselho como líder do clã **" + clan.tag() + "**.");
+            }
         });
         return clan;
     }
     public void invite(Clan clan, UUID actor, UUID player) {
         requireManager(clan, actor); if (state.clanOf(player).isPresent()) throw new IllegalArgumentException("Esse jogador já possui clã.");
         invites.put(player, new Invite(clan.id(), Instant.now().plusSeconds(300)));
+        discord.clanMessage(clan, "📨 **" + playerName(actor) + "** convidou **" + playerName(player) + "** para o clã. O convite expira em 5 minutos.");
     }
     public Clan accept(UUID player) {
         Invite invite = invites.remove(player); if (invite == null || invite.expiresAt().isBefore(Instant.now())) throw new IllegalArgumentException("Convite inexistente ou expirado.");
         Clan clan = state.clan(invite.clan()).orElseThrow(); clan.addMember(player, ClanRole.MEMBER); state.indexMember(player, clan.id()); repository.addMember(clan.id(), player, ClanRole.MEMBER);
-        regions.syncClanMembers(clan.claims(), claimAccessors(clan)); memberChangeHook.accept(clan); discord.syncClanIdentity(player, clan.discordRoleId(), ClanRole.MEMBER); return clan;
+        regions.syncClanMembers(clan.claims(), claimAccessors(clan)); memberChangeHook.accept(clan); discord.syncClanIdentity(player, clan.discordRoleId(), ClanRole.MEMBER);
+        discord.clanMessage(clan, "✅ **" + playerName(player) + "** entrou no clã como **membro**.");
+        discord.leadersMessage("🛡️ **" + playerName(player) + "** agora faz parte do clã **" + clan.tag() + "**.");
+        return clan;
     }
     public void leave(UUID player) {
         Clan clan = state.clanOf(player).orElseThrow(() -> new IllegalArgumentException("Você não possui clã."));
         if (clan.owner().equals(player)) throw new IllegalArgumentException("O líder deve dissolver ou transferir o clã.");
+        String name = playerName(player);
         clan.removeMember(player); state.unindexMember(player); repository.removeMember(player); regions.syncClanMembers(clan.claims(), claimAccessors(clan)); memberChangeHook.accept(clan); discord.removeClanIdentity(player, clan.discordRoleId());
+        discord.clanMessage(clan, "🚪 **" + name + "** saiu do clã.");
+        discord.leadersMessage("🚪 **" + name + "** saiu do clã **" + clan.tag() + "**.");
     }
     public void promote(Clan clan, UUID actor, UUID player) {
         if (clan.roleOf(actor) != ClanRole.LEADER) throw new IllegalArgumentException("Apenas o líder pode promover.");
         ClanRole current = clan.roleOf(player); if (current == null || current == ClanRole.LEADER) throw new IllegalArgumentException("Membro inválido.");
         ClanRole next = current == ClanRole.MEMBER ? ClanRole.OFFICER : ClanRole.MEMBER; clan.setRole(player, next); repository.setRole(player, next); discord.syncClanIdentity(player, clan.discordRoleId(), next);
+        discord.clanMessage(clan, "⭐ **" + playerName(actor) + "** definiu **" + playerName(player) + "** como **" + roleName(next) + "**.");
+        discord.leadersMessage("⭐ **" + playerName(player) + "** agora é **" + roleName(next) + "** no clã **" + clan.tag() + "**.");
     }
     public void kick(Clan clan, UUID actor, UUID player) {
         requireManager(clan, actor); if (!clan.contains(player) || clan.owner().equals(player)) throw new IllegalArgumentException("Membro inválido.");
+        String name = playerName(player);
         clan.removeMember(player); state.unindexMember(player); repository.removeMember(player); regions.syncClanMembers(clan.claims(), claimAccessors(clan)); memberChangeHook.accept(clan); discord.removeClanIdentity(player, clan.discordRoleId());
+        discord.clanMessage(clan, "⛔ **" + name + "** foi removido do clã por **" + playerName(actor) + "**.");
+        discord.leadersMessage("⛔ **" + name + "** foi removido do clã **" + clan.tag() + "**.");
     }
     public void setWar(Clan clan, UUID actor, boolean enabled) {
         throw new IllegalArgumentException("Todo clã é combatente por definição. Para ficar totalmente protegido, jogue sem clã e use seu santuário.");
@@ -80,6 +107,17 @@ public final class ClanService {
     }
     public void syncDiscordRoles() {
         for (Clan clan : state.clans()) clan.members().forEach((player, role) -> discord.syncClanIdentity(player, clan.discordRoleId(), role));
+    }
+    private String playerName(UUID player) {
+        String name = Bukkit.getOfflinePlayer(player).getName();
+        return name == null || name.isBlank() ? player.toString().substring(0, 8) : name;
+    }
+    private String roleName(ClanRole role) {
+        return switch (role) {
+            case LEADER -> "líder";
+            case OFFICER -> "vice-líder";
+            case MEMBER -> "membro";
+        };
     }
     private record Invite(UUID clan, Instant expiresAt) {}
 }
