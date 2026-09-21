@@ -49,7 +49,7 @@ services:
       ALLOW_FLIGHT: "true"
       ENABLE_RCON: "true"
       RCON_PASSWORD: ${RCON_PASSWORD}
-      MOTD: "Nemeton — survival comunitário Java + Bedrock"
+      MOTD: "§2✦ §aNEMETON §8• §fSurvival comunitário §8• §bJava + Bedrock §8| §7Clareira segura · Clãs · Eventos"
       DIFFICULTY: hard
       SPAWN_PROTECTION: 0
       TZ: ${TZ:-America/Belem}
